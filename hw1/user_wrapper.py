@@ -4,6 +4,7 @@ import os
 import re
 import readline
 
+from collections import defaultdict
 from pathlib import Path
 from hashlib import sha256
 
@@ -27,10 +28,10 @@ def fancy_input(s=''):
     return result
 
 def login(alias, asurite):
-    if not re.match('^[a-z0-9_]+$', alias):
-        return 'Hacker Alias must match: ^[a-z0-9_]+$'
-    if not re.match('^[a-z0-9]+$', asurite):
-        return 'ASURITE must match: ^[a-z0-9]+$'
+    if not re.match('^[a-z0-9_]{2,15}$', alias):
+        return 'Hacker Alias must match: ^[a-z0-9_]{2,15}$'
+    if not re.match('^[a-z0-9]{2,15}$', asurite):
+        return 'ASURITE must match: ^[a-z0-9]{2,15}+$'
 
     fancy_print()
     fancy_print()
@@ -58,19 +59,97 @@ def login(alias, asurite):
     else:
         raise Exception("???")
 
+def grades(user_scores):
+    below_grades = {
+        user: score
+        for user, score in user_scores.items()
+        if score <= 70
+    }
+    above_grades = {
+        user: score
+        for user, score in user_scores.items()
+        if score > 70
+    }
+
+    above_score_users = defaultdict(list)
+    for user, score in above_grades.items():
+        above_score_users[score].append(user)
+
+    clusters = {
+        (score, score): above_score_users[score]
+        for score in sorted(above_score_users)
+    }
+
+    while len(clusters) > 40:
+        closest_low = None
+        closest_high = None
+        closest_distance = None
+
+        prev_cluster = None
+        for cluster in sorted(clusters.keys(), key=lambda k: k[0]):
+            if closest_low is None:
+                closest_low = cluster
+            elif closest_high is None:
+                closest_high = cluster
+                closest_distance = closest_high[0] - closest_low[1]
+            else:
+                current_distance = cluster[0] - prev_cluster[1]
+                if current_distance < closest_distance:
+                    closest_low = prev_cluster
+                    closest_high = cluster
+                    closest_distance = current_distance
+            prev_cluster = cluster
+
+        new_cluster = (closest_low[0], closest_high[1])
+        new_cluster_data = [*clusters[closest_low], *clusters[closest_high]]
+
+        del clusters[closest_low]
+        del clusters[closest_high]
+        clusters[new_cluster] = new_cluster_data
+
+    above_grades = dict()
+    score = 110
+    for cluster in reversed(sorted(clusters.keys(), key=lambda k: k[0])):
+        cluster_data = clusters[cluster]
+        for user in cluster_data:
+            above_grades[user] = score
+        score -= 1
+
+    return {**below_grades, **above_grades}
+
 def show_scoreboard():
-    users = dict()
+    user_scores = dict()
     for path in Path.home().iterdir():
         if path.is_dir() and ':' in path.name:
             existing_alias, existing_asurite = path.name.split(':', 1)
             solves = len(list((path / 'solves').iterdir()))
-            users[existing_alias] = solves
+            user_scores[existing_alias] = solves
+
+    user_grades = grades(user_scores)
+
+    max_alias_length = max(len(user) for user in user_scores)
+    max_score_length = max(len(str(user_scores[user])) for user in user_scores)
 
     fancy_print()
-    fancy_print("=" * 20 + "SCOREBOARD" + "=" * 20)
-    for i, alias in enumerate(reversed(sorted(users, key=lambda k: users[k]))):
-        fancy_print(f"{i+1}.  {alias}  =  {users[alias]}")
+    fancy_print("=" * 20 + " SCOREBOARD " + "=" * 20)
+    fancy_print(f"{'Rank':<6}    {'Hacker':<{max_alias_length}}    {'Score':<{max_score_length}}    {'Grade':<5}")
+    for i, alias in enumerate(reversed(sorted(user_scores, key=lambda k: user_scores[k]))):
+        fancy_print(f"{i+1:>5}.    {alias:<{max_alias_length}}    {user_scores[alias]:>{max_score_length}}    {user_grades[alias]:>5}")
     fancy_print()
+
+def get_binary_path():
+    binary_path = fancy_input("Path to Binary: ")
+    if not re.match('^/[a-zA-Z0-9/_\-]+$', binary_path):
+        fancy_print("Path to Binary must match: ^/[a-zA-Z0-9/_\-]+$")
+        return False
+
+    binary_path = re.sub('/+', '/', binary_path)
+
+    if binary_path.count('proc') > 1:
+        fancy_print("Don't be greedy!")
+        return False
+
+    return binary_path
 
 def solve(binary_path, alias, log_path):
     flag = sha256(f'{SECRET}+{alias}+{binary_path}'.encode()).hexdigest()
@@ -115,18 +194,17 @@ def main():
             show_scoreboard()
 
         elif choice == 2:
-            binary_path = fancy_input("Path to Binary: ")
-            if not re.match('^/[a-zA-Z0-9/_\-]+$', binary_path):
-                fancy_print("Path to Binary must match: ^/[a-zA-Z0-9/_\-]+$")
-            binary_path = re.sub('/+', '/', binary_path)
+            binary_path = get_binary_path()
 
-            solved = solve(binary_path, alias, (user_path / 'logs' / binary_path.replace('/', '_')))
-            if solved is True:
-                fancy_print("Correct Flag!")
-                (user_path / 'solves' / binary_path.replace('/', '_')).touch()
+            if binary_path:
+                solved = solve(binary_path, alias, (user_path / 'logs' / binary_path.replace('/', '_')))
 
-            elif solved is False:
-                fancy_print("Wrong Flag!")
+                if solved is True:
+                    fancy_print("Correct Flag!")
+                    (user_path / 'solves' / binary_path.replace('/', '_')).touch()
+
+                elif solved is False:
+                    fancy_print("Wrong Flag!")
 
         elif choice == 3:
             running = False
