@@ -55,8 +55,8 @@ def solve(binary_path, alias, log_path):
     flag = sha256(f'{SECRET}+{alias}+{binary_path}'.encode()).hexdigest()
     flag = 'CSE466{' + flag + '}'
 
-    docker = f'docker run --name hw1_{alias} --rm -it -e FLAG={flag} -e BINARY_PATH={binary_path} --cpus=0.5 --memory=500m --memory-swap=-1 --pids-limit=100 hw1'
-    cmd = f'script -a -c "{docker}" {str(log_path)}'
+    docker = f'docker run --name hw1_{alias} --rm -it -e FLAG={flag} -e BINARY_FILE={binary_path} --cpus=0.5 --memory=500m --memory-swap=-1 --pids-limit=100 hw1'
+    cmd = f'script -aqc "{docker}" {str(log_path)}'
     os.system(cmd)
 
     input_flag = input("Flag: ")
