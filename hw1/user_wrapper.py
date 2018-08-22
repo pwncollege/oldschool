@@ -2,6 +2,7 @@
 
 import os
 import re
+import readline
 
 from pathlib import Path
 from hashlib import sha256
@@ -20,7 +21,8 @@ def login(alias, asurite):
     if not re.match('^[a-z0-9]+$', asurite):
         return 'ASURITE must match: ^[a-z0-9]+$'
 
-    fancy_print("\n")
+    fancy_print()
+    fancy_print()
 
     users = dict()
     for path in Path.home().iterdir():
@@ -110,7 +112,8 @@ def main():
         else:
             fancy_print("Invalid choice!")
 
-        fancy_print("\n")
+        fancy_print()
+        fancy_print()
 
 if __name__ == '__main__':
     main()
