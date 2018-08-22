@@ -2,7 +2,6 @@
 
 import os
 import re
-import readline
 
 from pathlib import Path
 from hashlib import sha256
