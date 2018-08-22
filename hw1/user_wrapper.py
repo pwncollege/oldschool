@@ -67,10 +67,14 @@ def solve(binary_path, alias, log_path):
 
     docker = f'docker run --name hw1_{alias} --rm -it -e FLAG={flag} -e BINARY_FILE={binary_path} --cpus=0.5 --memory=500m --memory-swap=-1 --pids-limit=100 hw1'
     cmd = f'script -aqc "{docker}" {str(log_path)}'
-    os.system(cmd)
+    result = os.system(cmd)
 
-    input_flag = fancy_input("Flag: ")
-    return input_flag == flag
+    if result == 0:
+        input_flag = fancy_input("Flag: ")
+        return input_flag == flag
+    else:
+        fancy_print("Error starting container! Maybe you are already connected in a different session?")
+        return False
 
 def main():
     alias = fancy_input("Hacker Alias: ")
