@@ -9,11 +9,22 @@ from hashlib import sha256
 
 SECRET = 'th1$_1z_$up3r_s3cr3t'
 
+session_log = None
+
 def fancy_print(s=''):
-    print(f'[+++] {s}')
+    s = f'[+++] {s}'
+    if session_log:
+        with session_log.open('a') as f:
+            f.write(s + '\n')
+    print(s)
 
 def fancy_input(s=''):
-    return input(f'[+++] {s}')
+    s = f'[+++] {s}'
+    result = input(s)
+    if session_log:
+        with session_log.open('a') as f:
+            f.write(s + result + '\n')
+    return result
 
 def login(alias, asurite):
     if not re.match('^[a-z0-9_]+$', alias):
@@ -86,6 +97,8 @@ def main():
         return
 
     user_path = result
+    global session_log
+    session_log = result / 'session_log'
 
     while True:
         fancy_print("1. Show Scoreboard")
