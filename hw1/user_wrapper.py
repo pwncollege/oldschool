@@ -100,9 +100,11 @@ def main():
     global session_log
     session_log = result / 'session_log'
 
-    while True:
+    running = True
+    while running:
         fancy_print("1. Show Scoreboard")
         fancy_print("2. Solve HW1")
+        fancy_print("3. Quit")
 
         try:
             choice = int(fancy_input("Choice: "))
@@ -125,6 +127,9 @@ def main():
 
             elif solved is False:
                 fancy_print("Wrong Flag!")
+
+        elif choice == 3:
+            running = False
 
         else:
             fancy_print("Invalid choice!")
