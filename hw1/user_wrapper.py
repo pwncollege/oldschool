@@ -8,6 +8,9 @@ from hashlib import sha256
 
 SECRET = 'th1$_1z_$up3r_s3cr3t'
 
+def log(s):
+    print(f'[+++] {s}')
+
 def login(alias, asurite):
     if not re.match('^[a-z0-9_]+$', alias):
         return 'Hacker Alias must match: ^[a-z0-9_]+$'
@@ -45,11 +48,11 @@ def show_scoreboard():
             solves = len(list((path / 'solves').iterdir()))
             users[existing_alias] = solves
 
-    print()
-    print("=" * 20 + "SCOREBOARD" + "=" * 20)
+    log()
+    log("=" * 20 + "SCOREBOARD" + "=" * 20)
     for i, alias in enumerate(reversed(sorted(users, key=lambda k: users[k]))):
-        print(f"{i+1}.  {alias}  =  {users[alias]}")
-    print()
+        log(f"{i+1}.  {alias}  =  {users[alias]}")
+    log()
 
 def solve(binary_path, alias, log_path):
     flag = sha256(f'{SECRET}+{alias}+{binary_path}'.encode()).hexdigest()
@@ -68,14 +71,14 @@ def main():
 
     result = login(alias, asurite)
     if type(result) is str:
-        print(result)
+        log(result)
         return
 
     user_path = result
 
     while True:
-        print("1. Show Scoreboard")
-        print("2. Solve HW1")
+        log("1. Show Scoreboard")
+        log("2. Solve HW1")
 
         try:
             choice = int(input("Choice: "))
@@ -88,21 +91,21 @@ def main():
         elif choice == 2:
             binary_path = input("Path to Binary: ")
             if not re.match('^/[a-zA-Z0-9/_\-]+$', binary_path):
-                print("Path to Binary must match: ^/[a-zA-Z0-9/_\-]+$")
+                log("Path to Binary must match: ^/[a-zA-Z0-9/_\-]+$")
             binary_path = re.sub('/+', '/', binary_path)
 
             solved = solve(binary_path, alias, (user_path / 'logs' / binary_path.replace('/', '_')))
             if solved:
-                print("Correct Flag!")
+                log("Correct Flag!")
                 (user_path / 'solves' / binary_path.replace('/', '_')).touch()
 
             else:
-                print("Wrong Flag!")
+                log("Wrong Flag!")
 
         else:
-            print("Invalid choice!")
+            log("Invalid choice!")
 
-        print("\n")
+        log("\n")
 
 if __name__ == '__main__':
     main()
