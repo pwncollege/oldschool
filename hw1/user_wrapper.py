@@ -66,7 +66,7 @@ def solve(binary_path, alias, log_path):
     flag = 'CSE466{' + flag + '}'
 
     docker = f'docker run --name hw1_{alias} --rm -it -e FLAG={flag} -e BINARY_FILE={binary_path} --cpus=0.5 --memory=500m --memory-swap=-1 --pids-limit=100 hw1'
-    cmd = f'script -aqc "{docker}" {str(log_path)}'
+    cmd = f'script -aqec "{docker}" {str(log_path)}'
     result = os.system(cmd)
 
     if result == 0:
