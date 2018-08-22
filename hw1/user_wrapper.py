@@ -74,7 +74,7 @@ def solve(binary_path, alias, log_path):
         return input_flag == flag
     else:
         fancy_print("Error starting container! Maybe you are already connected in a different session?")
-        return False
+        return None
 
 def main():
     alias = fancy_input("Hacker Alias: ")
@@ -106,11 +106,11 @@ def main():
             binary_path = re.sub('/+', '/', binary_path)
 
             solved = solve(binary_path, alias, (user_path / 'logs' / binary_path.replace('/', '_')))
-            if solved:
+            if solved is True:
                 fancy_print("Correct Flag!")
                 (user_path / 'solves' / binary_path.replace('/', '_')).touch()
 
-            else:
+            elif solved is False:
                 fancy_print("Wrong Flag!")
 
         else:
