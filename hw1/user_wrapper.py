@@ -3,12 +3,14 @@
 import os
 import re
 import readline
+import subprocess
 
 from collections import defaultdict
 from pathlib import Path
 from hashlib import sha256
 
 SECRET = 'th1$_1z_$up3r_s3cr3t'
+SAFETY_SECRET = sha256(f'{SECRET}asdfasdfasdfasdfasdfasdfasdfasdfasfjaslkdfjalskjfalsdjf'.encode()).hexdigest()
 
 session_log = None
 
@@ -156,8 +158,10 @@ def solve(binary_path, alias, log_path):
     flag = 'CSE466{' + flag + '}'
 
     docker = f'docker run --name hw1_{alias} --rm -it -e FLAG={flag} -e BINARY_FILE={binary_path} --cpus=0.5 --memory=500m --memory-swap=-1 --pids-limit=100 hw1'
-    cmd = f'script -aqec "{docker}" {str(log_path)}'
-    result = os.system(cmd)
+    #cmd = f'script -aqec "{docker}" {str(log_path)}'
+    #result = os.system(cmd)
+    p = subprocess.Popen(['script', '-aqec', docker, f'{str(log_path)}'], stdin=0, stderr=2, stdout=1, env={'SAFETY_SECRET':SAFETY_SECRET})
+    result = p.wait()
 
     if result == 0:
         input_flag = fancy_input("Flag: ")
@@ -216,4 +220,9 @@ def main():
         fancy_print()
 
 if __name__ == '__main__':
-    main()
+    import sys
+    if os.environ.get('SAFETY_SECRET', '') == SAFETY_SECRET:
+        p = subprocess.Popen(sys.argv[1:], stdin=0, stderr=2, stdout=1)
+        sys.exit(p.wait())
+    else:
+        main()
