@@ -2,6 +2,7 @@
 
 import os
 import re
+import sys
 import readline
 import subprocess
 
@@ -229,7 +230,6 @@ def main():
         fancy_print()
 
 if __name__ == '__main__':
-    import sys
     if os.environ.get('SAFETY_SECRET', '') == SAFETY_SECRET and len(sys.argv) == 4 and sys.argv[1] == 'EXECUTE':
         run_docker(sys.argv[2], sys.argv[3])
     else:
