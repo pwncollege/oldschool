@@ -139,9 +139,12 @@ def show_scoreboard():
         fancy_print(f"{i+1:>5}.    {alias:<{max_alias_length}}    {user_scores[alias]:>{max_score_length}}    {user_grades[alias]:>5}")
     fancy_print()
 
+def validate_binary_path(binary_path):
+    return re.match('^/[a-zA-Z0-9/_\-]+$', binary_path) and True or False
+
 def get_binary_path():
     binary_path = fancy_input("Path to Binary: ")
-    if not re.match('^/[a-zA-Z0-9/_\-]+$', binary_path):
+    if not validate_binary_path(binary_path):
         fancy_print("Path to Binary must match: ^/[a-zA-Z0-9/_\-]+$")
         return False
 
@@ -156,19 +159,25 @@ def get_binary_path():
 def solve(binary_path, alias, log_path):
     flag = sha256(f'{SECRET}+{alias}+{binary_path}'.encode()).hexdigest()
     flag = 'CSE466{' + flag + '}'
+    cmd = f'script -aqec "{sys.argv[0]} EXECUTE {alias} {binary_path}" {str(log_path)}'
+    result = os.system(cmd)
+    #p = subprocess.Popen(['script', '-aqec', docker, f'{str(log_path)}'], stdin=0, stderr=2, stdout=1, env={'SAFETY_SECRET':SAFETY_SECRET})
+    #result = p.wait()
 
+    input_flag = fancy_input("Flag: ")
+    return input_flag == flag
+
+def run_docker(alias, binary_path):
+    flag = sha256(f'{SECRET}+{alias}+{binary_path}'.encode()).hexdigest()
+    flag = 'CSE466{' + flag + '}'
     docker = f'docker run --name hw1_{alias} --rm -it -e FLAG={flag} -e BINARY_FILE={binary_path} --cpus=0.5 --memory=500m --memory-swap=-1 --pids-limit=100 hw1'
-    #cmd = f'script -aqec "{docker}" {str(log_path)}'
-    #result = os.system(cmd)
-    p = subprocess.Popen(['script', '-aqec', docker, f'{str(log_path)}'], stdin=0, stderr=2, stdout=1, env={'SAFETY_SECRET':SAFETY_SECRET})
-    result = p.wait()
 
-    if result == 0:
-        input_flag = fancy_input("Flag: ")
-        return input_flag == flag
-    else:
-        fancy_print("Error starting container! Maybe you are already connected in a different session?")
-        return None
+    result = os.system(docker)
+    if result != 0:
+        fancy_print("Container returned an error! This might be because your last")
+        fancy_print("command failed (which is okay) or because you already have another")
+        fancy_print("session running. If you have lost connection to your other session,")
+        fancy_print("it should time out within 10 minutes.")
 
 def main():
     alias = fancy_input("Hacker Alias: ")
@@ -221,8 +230,9 @@ def main():
 
 if __name__ == '__main__':
     import sys
-    if os.environ.get('SAFETY_SECRET', '') == SAFETY_SECRET:
-        p = subprocess.Popen(sys.argv[1:], stdin=0, stderr=2, stdout=1)
-        sys.exit(p.wait())
+    if os.environ.get('SAFETY_SECRET', '') == SAFETY_SECRET and len(sys.argv) == 4 and sys.argv[1] == 'EXECUTE':
+        run_docker(sys.argv[2], sys.argv[3])
     else:
+        os.environ.clear()
+        os.environ['SAFETY_SECRET'] = SAFETY_SECRET
         main()
