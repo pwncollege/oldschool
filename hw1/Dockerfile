@@ -11,6 +11,10 @@ run apt-get install -y ubuntu-standard build-essential apt-utils binutils bsdmai
 add install.sh /install.sh
 run DEBIAN_FRONTEND=noninteractive /install.sh
 run rm /install.sh
+run dpkg -P libpam-cgfs || echo sigh
+
+# asdf
+run find / -type f -perm -4000 | xargs chmod u-s
 
 run adduser hw1
 
