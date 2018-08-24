@@ -3,7 +3,6 @@
 import os
 import re
 import sys
-import readline
 import subprocess
 
 from collections import defaultdict
