@@ -171,7 +171,8 @@ def solve(binary_path, alias, log_path):
 def run_docker(alias, binary_path):
     flag = sha256(f'{SECRET}+{alias}+{binary_path}'.encode()).hexdigest()
     flag = 'CSE466{' + flag + '}'
-    docker = f'docker run --name hw1_{alias} --rm -it -e FLAG={flag} -e BINARY_FILE={binary_path} --cpus=0.5 --memory=500m --memory-swap=-1 --pids-limit=100 hw1'
+    docker = (f'for id in $(docker ps -q --filter="name=hw1_{alias}"); do docker kill $id; done; '
+              f'docker run --name hw1_{alias} --rm -it -e FLAG={flag} -e BINARY_FILE={binary_path} --cpus=0.5 --memory=500m --memory-swap=-1 --pids-limit=100 hw1')
 
     result = os.system(docker)
     if result != 0:
