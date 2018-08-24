@@ -141,12 +141,12 @@ def show_scoreboard():
     fancy_print()
 
 def validate_binary_path(binary_path):
-    return re.match('^/[a-zA-Z0-9/_\-]+$', binary_path) and True or False
+    return re.match('^/[a-zA-Z0-9/_\-\+]+$', binary_path) and True or False
 
 def get_binary_path():
     binary_path = fancy_input("Path to Binary: ")
     if not validate_binary_path(binary_path):
-        fancy_print("Path to Binary must match: ^/[a-zA-Z0-9/_\-]+$")
+        fancy_print("Path to Binary must match: ^/[a-zA-Z0-9/_\-\+]+$")
         return False
 
     binary_path = re.sub('/+', '/', binary_path)
