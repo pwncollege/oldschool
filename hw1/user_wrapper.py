@@ -138,7 +138,7 @@ def show_scoreboard():
             current_alias, current_asurite = path.name.split(':', 1)
             solves = len(list((path / 'solves').iterdir()))
             user_scores[current_alias] = solves
-            if current_alias in ENROLLED.keys() or current_alias in ENROLLED.values():
+            if current_asurite in ENROLLED.keys() or current_asurite in ENROLLED.values():
                 user_grades[current_alias] = solves
 
     user_grades = grades(user_grades)
@@ -211,7 +211,7 @@ def main():
         print(result)
         return
 
-    if alias in ENROLLED.keys() or alias in ENROLLED.values():
+    if asurite in ENROLLED.keys() or asurite in ENROLLED.values():
         print("You are enrolled in the course! The scoreboard reflects your grade!")
         enrolled = True
     else:
