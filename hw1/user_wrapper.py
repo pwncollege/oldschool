@@ -240,6 +240,9 @@ if __name__ == '__main__':
     if os.environ.get('SAFETY_SECRET', '') == SAFETY_SECRET and len(sys.argv) == 4 and sys.argv[1] == 'EXECUTE':
         run_docker(sys.argv[2], sys.argv[3])
     else:
+        CHECK_AUTH = os.environ.get('CHECK_AUTH')
         os.environ.clear()
         os.environ['SAFETY_SECRET'] = SAFETY_SECRET
+        if CHECK_AUTH:
+            os.environ['CHECK_AUTH'] = CHECK_AUTH
         main()
