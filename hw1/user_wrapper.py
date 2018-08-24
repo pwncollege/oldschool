@@ -13,31 +13,41 @@ from hashlib import sha256
 SECRET = 'th1$_1z_$up3r_s3cr3t'
 SAFETY_SECRET = sha256(f'{SECRET}asdfasdfasdfasdfasdfasdfasdfasdfasfjaslkdfjalskjfalsdjf'.encode()).hexdigest()
 
+ALIAS_RE = '^[a-z0-9_]{2,15}$'
+OLD_ASURITE_RE = '^[a-z0-9]{2,15}$'
+BINARY_PATH_RE = '^/[a-zA-Z0-9/_\-\+]+$'  # Warning: Careful changing. May lead to command injection.
+
+ENROLLED = {
+
+}
+
 session_log = None
 
-def fancy_print(s=''):
+original_print = print
+def print(s=''):
     s = f'[+++] {s}'
     if session_log:
         with session_log.open('a') as f:
             f.write(s + '\n')
-    print(s)
+    original_print(s)
 
-def fancy_input(s=''):
+original_input = input
+def input(s=''):
     s = f'[+++] {s}'
-    result = input(s)
+    result = original_input(s)
     if session_log:
         with session_log.open('a') as f:
             f.write(s + result + '\n')
     return result
 
 def login(alias, asurite):
-    if not re.match('^[a-z0-9_]{2,15}$', alias):
-        return 'Hacker Alias must match: ^[a-z0-9_]{2,15}$'
-    if not re.match('^[a-z0-9]{2,15}$', asurite):
-        return 'ASURITE must match: ^[a-z0-9]{2,15}+$'
+    if not re.match(ALIAS_RE, alias):
+        return f'Hacker Alias must match: {ALIAS_RE}'
+    if not re.match(OLD_ASURITE_RE, asurite):
+        return f'ASURITE must match: {OLD_ASURITE_RE}'
 
-    fancy_print()
-    fancy_print()
+    print()
+    print()
 
     users = dict()
     for path in Path.home().iterdir():
@@ -122,37 +132,42 @@ def grades(user_scores):
 
 def show_scoreboard():
     user_scores = dict()
+    user_grades = dict()
     for path in Path.home().iterdir():
         if path.is_dir() and ':' in path.name:
-            existing_alias, existing_asurite = path.name.split(':', 1)
+            current_alias, current_asurite = path.name.split(':', 1)
             solves = len(list((path / 'solves').iterdir()))
-            user_scores[existing_alias] = solves
+            user_scores[current_alias] = solves
+            if current_alias in ENROLLED.keys() or current_alias in ENROLLED.values():
+                user_grades[current_alias] = solves
 
-    user_grades = grades(user_scores)
+    user_grades = grades(user_grades)
 
-    max_alias_length = max(len(user) for user in user_scores)
-    max_score_length = max(len(str(user_scores[user])) for user in user_scores)
+    rank_length = max(len(str(len(user_scores))), len('Rank'))
+    alias_length = max(max(len(user) for user in user_scores), len('Hacker'))
+    score_length = max(max(len(str(user_scores[user])) for user in user_scores), len('Score'))
+    grade_length = max(max(len(str(user_grades[user])) for user in user_grades), len('Grade'), len('GUEST'))
 
-    fancy_print()
-    fancy_print("=" * 20 + " SCOREBOARD " + "=" * 20)
-    fancy_print(f"{'Rank':<6}    {'Hacker':<{max_alias_length}}    {'Score':<{max_score_length}}    {'Grade':<5}")
+    print()
+    print("=" * 20 + " SCOREBOARD " + "=" * 20)
+    print(f"{'Rank':>{rank_length}}     {'Hacker':<{alias_length}}    {'Score':>{score_length}}    {'Grade':>{grade_length}}")
     for i, alias in enumerate(reversed(sorted(user_scores, key=lambda k: user_scores[k]))):
-        fancy_print(f"{i+1:>5}.    {alias:<{max_alias_length}}    {user_scores[alias]:>{max_score_length}}    {user_grades[alias]:>5}")
-    fancy_print()
-
-def validate_binary_path(binary_path):
-    return re.match('^/[a-zA-Z0-9/_\-\+]+$', binary_path) and True or False
+        grade = user_grades.get(alias, "GUEST")
+        print(f"{i+1:>{rank_length}}.    {alias:<{alias_length}}    {user_scores[alias]:>{score_length}}    {grade:>{grade_length}}")
+    print()
 
 def get_binary_path():
-    binary_path = fancy_input("Path to Binary: ")
-    if not validate_binary_path(binary_path):
-        fancy_print("Path to Binary must match: ^/[a-zA-Z0-9/_\-\+]+$")
+    # Warning: Careful changing. May lead to command injection / extra flags.
+
+    binary_path = input("Path to Binary: ")
+    if not re.match(BINARY_PATH_RE, binary_path):
+        print(f"Path to Binary must match: {BINARY_PATH_RE}")
         return False
 
     binary_path = re.sub('/+', '/', binary_path)
 
     if binary_path.count('proc') > 1:
-        fancy_print("Don't be greedy!")
+        print("Don't be greedy!")
         return False
 
     return binary_path
@@ -165,7 +180,7 @@ def solve(binary_path, alias, log_path):
     #p = subprocess.Popen(['script', '-aqec', docker, f'{str(log_path)}'], stdin=0, stderr=2, stdout=1, env={'SAFETY_SECRET':SAFETY_SECRET})
     #result = p.wait()
 
-    input_flag = fancy_input("Flag: ")
+    input_flag = input("Flag: ")
     return input_flag == flag
 
 def run_docker(alias, binary_path):
@@ -176,25 +191,34 @@ def run_docker(alias, binary_path):
 
     result = os.system(docker)
     if result != 0:
-        fancy_print("Container returned an error! This might be because your last")
-        fancy_print("command failed (which is okay) or because you already have another")
-        fancy_print("session running. If you have lost connection to your other session,")
-        fancy_print("it should time out within 10 minutes.")
+        print("Container returned an error! This might be because your last")
+        print("command failed (which is okay) or because you already have another")
+        print("session running. If you have lost connection to your other session,")
+        print("it should time out within 10 minutes.")
 
 def main():
     if os.environ.get('CHECK_AUTH') == 'yes':
-        password = fancy_input("Password: ")
+        password = input("Password: ")
         if password != 's3cr3t':
-            fancy_print("Wrong password! Check the mailing list.")
+            print("Wrong password! Check the mailing list.")
             return
 
-    alias = fancy_input("Hacker Alias: ")
-    asurite = fancy_input("ASURITE: ")
+    alias = input("Hacker Alias: ")
+    asurite = input("ASURITE: ")
 
     result = login(alias, asurite)
     if type(result) is str:
-        fancy_print(result)
+        print(result)
         return
+
+    if alias in ENROLLED.keys() or alias in ENROLLED.values():
+        print("You are enrolled in the course! The scoreboard reflects your grade!")
+        enrolled = True
+    else:
+        print("You are a guest user! You will not be graded!")
+        enrolled = False
+
+    print()
 
     user_path = result
     global session_log
@@ -202,12 +226,12 @@ def main():
 
     running = True
     while running:
-        fancy_print("1. Show Scoreboard")
-        fancy_print("2. Solve HW1")
-        fancy_print("3. Quit")
+        print("1. Show Scoreboard")
+        print("2. Solve HW1")
+        print("3. Quit")
 
         try:
-            choice = int(fancy_input("Choice: "))
+            choice = int(input("Choice: "))
         except ValueError:
             choice = 0
 
@@ -221,20 +245,20 @@ def main():
                 solved = solve(binary_path, alias, (user_path / 'logs' / binary_path.replace('/', '_')))
 
                 if solved is True:
-                    fancy_print("Correct Flag!")
+                    print("Correct Flag!")
                     (user_path / 'solves' / binary_path.replace('/', '_')).touch()
 
                 elif solved is False:
-                    fancy_print("Wrong Flag!")
+                    print("Wrong Flag!")
 
         elif choice == 3:
             running = False
 
         else:
-            fancy_print("Invalid choice!")
+            print("Invalid choice!")
 
-        fancy_print()
-        fancy_print()
+        print()
+        print()
 
 if __name__ == '__main__':
     if os.environ.get('SAFETY_SECRET', '') == SAFETY_SECRET and len(sys.argv) == 4 and sys.argv[1] == 'EXECUTE':
