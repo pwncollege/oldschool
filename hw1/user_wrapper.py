@@ -182,7 +182,7 @@ def run_docker(alias, binary_path):
         fancy_print("it should time out within 10 minutes.")
 
 def main():
-    if 'SSH_CONNECTION' not in os.environ:
+    if os.environ.get('CHECK_AUTH') == 'yes':
         password = fancy_input("Password: ")
         if password != 's3cr3t':
             fancy_print("Wrong password! Check the mailing list.")
