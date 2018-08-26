@@ -9,8 +9,8 @@ from collections import defaultdict
 from pathlib import Path
 from hashlib import sha256
 
-SECRET = 'th1$_1z_$up3r_s3cr3t'
-SAFETY_SECRET = sha256(f'{SECRET}asdfasdfasdfasdfasdfasdfasdfasdfasfjaslkdfjalskjfalsdjf'.encode()).hexdigest()
+SECRET = '!f_y0u_f1nd_th!$_t311_u$'
+SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
 
 ALIAS_RE = '^[a-z0-9_]{2,15}$'
 OLD_ASURITE_RE = '^[a-z0-9]{2,15}$'
