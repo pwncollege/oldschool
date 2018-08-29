@@ -121,7 +121,7 @@ def solve_challenge():
     ]
     docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
     log_path = str(Path.home() / f'{alias}:{asurite}' / 'session_log')
-    os.system(f'script -aqec "docker run {docker_arguments} hw2" {log_path}')
+    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw2" {log_path}')
 
     submitted_flag = input("Flag: ")
     if submitted_flag == flag:
