@@ -1,0 +1,176 @@
+#!/usr/bin/env python
+
+import os
+import sys
+
+# the application:
+# - guestbook
+# - sign guestbook
+# - view guestbook
+# - get cookie
+
+# injections:
+# - url injection
+# - parameter injection
+# - template injection
+# - XSS
+# - CSS injection
+# - C injection
+# - python injection
+# - perl injection
+# - lua injection
+# - php injection
+# - HTTP header injection
+# - XPath injection
+# - SQL
+
+#pylint:disable=unused-argument
+
+#
+# these generate the page boilerplate
+#
+
+def boilerplate_flask_header(**kw):
+	return boilerplate_python_header(**kw) + """
+import flask
+import hashlib
+
+app = flask.Flask('hw2')
+
+@app.route('/hello')
+def hello_world():
+	    return 'Hello, World!'
+"""
+
+def boilerplate_python_header(**kw):
+	return """#!/usr/bin/env python
+"""
+
+def boilerplate_flask_footer(**kw):
+	return """
+if __name__ == '__main__':
+	app.run(debug=False)
+"""
+
+#
+# These generate flask endpoints
+#
+
+def endpoint_index(**kw):
+	return """
+@app.route('/')
+def endpoint_index():
+	page = '''%s'''
+	if check_session() == 'admin':
+		page += "<h1>WELCOME ADMIN</h1>"
+		page += "The flag is: " + open('flag').read()
+	elif check_session():
+		page += "<h1>WELCOME %%s</h1>" %% check_session()
+	else:
+		page += "<h1>Please login.</h1>"
+		page += '''%s'''
+
+	page += '''%s'''
+	return page
+""" % (html_header(**kw), html_login_form(login_form_method='POST', **kw), html_footer(**kw))
+
+def endpoint_login(**kw):
+	return """
+@app.route('/login', methods=['POST'])
+def endpoint_login():
+	username = flask.request.form['user']
+	password = flask.request.form['pass']
+	if not check_credentials(username, password):
+		return flask.abort(401)
+	return successful_login(username)
+"""
+
+#
+# these generate various logic
+#
+
+def backend_hardcoded_plain_check_credentials(**kw):
+	return """
+def check_credentials(username, password):
+	if username == "admin" and password != "hunter2":
+		return False
+	return True
+"""
+
+def backend_hardcoded_md5_check_credentials(**kw):
+	return """
+def check_credentials(username, password):
+	if username == "admin" and hashlib.md5(password).hexdigest() != "2e771fe4f4354532dbc49c9c9a45e81f":
+		return False
+	return True
+"""
+
+def backend_dummy_successful_login(**kw):
+	return """
+def successful_login(user):
+	return flask.redirect("/?user=%s&authenticated=1" % user)
+"""
+
+def backend_dummy_check_session(**kw):
+	return """
+def check_session():
+	if flask.request.args.get("authenticated"):
+		return flask.request.args.get("user")
+	return None
+"""
+
+#
+# there are various filters
+#
+
+def filter_semicolons(function_name='filter', **kw):
+	return """
+def %s(s):
+	assert ';' not in s
+""" % function_name
+
+#
+# These generate the HTML parts.
+#
+
+def html_header(title="CSE466 HW2", **kw):
+	return """<html><head><title>%s</title></head><body>""" % title
+def html_footer(**kw):
+	return """</body></html>"""
+def html_login_form(login_form_method='get', **kw):
+	return html_header(**kw) + ("""
+<h1>Log in!</h1>
+<form action='login' method='%s'>
+Username: <input type='text' name='user' id='user'><br>
+Password: <input type='text' name='pass' id='pass'><br>
+<input type='submit' name='submit' id='submit'><br>
+</form>
+""" % login_form_method) + html_footer(**kw)
+
+#
+# There are all the options
+#
+
+options = {
+	'login_form_method': [ 'get', 'post' ],
+}
+
+levels = [
+	# first level is the plain hunter2
+	[ backend_hardcoded_plain_check_credentials, backend_dummy_check_session, backend_dummy_successful_login, endpoint_index, endpoint_login ]
+]
+
+def make_app(funcs):
+	page = boilerplate_flask_header()
+	for f in funcs:
+		page += f()
+	page += boilerplate_flask_footer()
+	return page
+
+if __name__ == '__main__':
+	_page = make_app(levels[int(sys.argv[1])])
+	with open("hw2.py", "w") as _o:
+		_o.write(_page)
+	if __file__ == '/start.py':
+		os.unlink(__file__)
+	os.system("python hw2.py")
