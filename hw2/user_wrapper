@@ -102,7 +102,8 @@ def show_scoreboard():
 
 def solve_challenge():
     challenge = challenge_path()
-    flag = challenge_flag(os.path.basename(challenge))
+    base_challenge = os.path.basename(challenge)
+    flag = challenge_flag(base_challenge)
     # Kill any old docker container
     os.system(f'for id in $(docker ps -q --filter="name=hw2_{alias}"); do docker kill $id; done;')
 
@@ -120,13 +121,13 @@ def solve_challenge():
         ('--device-write-bps', '/dev/sda:10kb')
     ]
     docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
-    log_path = str(Path.home() / f'{alias}:{asurite}' / 'session_log')
+    log_path = str(Path.home() / f'{alias}:{asurite}' / 'logs' / base_challenge)
     os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw2" {log_path}')
 
     submitted_flag = input("Flag: ")
     if submitted_flag == flag:
         print("Correct Flag!")
-        (Path.home() / f'{alias}:{asurite}' / 'solves' / str(challenge)).touch()
+        (Path.home() / f'{alias}:{asurite}' / 'solves' / base_challenge).touch()
     else:
         print("Wrong Flag!")
 
