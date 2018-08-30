@@ -13,7 +13,7 @@ SECRET = '4N0Th3r_53cur3_p4ZZw0rD'
 SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
 
 ALIAS_RE = '^[a-z0-9_]{2,15}$'
-OLD_ASURITE_RE = '^[a-z0-9]{2,15}$'
+ASURITE_RE = '^[a-z0-9]{2,15}$'
 BINARY_PATH_RE = '^/[a-zA-Z0-9/_\-\+]+$'
 
 SCORE_MULTIPLIER = 1
