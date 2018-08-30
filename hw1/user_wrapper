@@ -107,11 +107,9 @@ def solve_challenge():
 
     # Start new docker container
     docker_arguments = [
-        ('--name', f'hw2_{alias}'),
+        ('--name', f'hw1_{alias}'),
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
-        ('--cap-drop', 'dac_override'),
-        ('--cap-drop', 'dac_read_search'),
         ('--cpus', '0.5'),
         ('--memory', '500m'),
         ('--memory-swap', '-1'),
@@ -120,7 +118,7 @@ def solve_challenge():
     ]
     docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
     log_path = str(Path.home() / f'{alias}:{asurite}' / 'logs' / base_challenge)
-    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw2" {log_path}')
+    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw1" {log_path}')
 
     submitted_flag = input("Flag: ")
     if submitted_flag == flag:
