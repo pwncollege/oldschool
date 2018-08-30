@@ -83,7 +83,7 @@ def login():
 
 def show_scoreboard():
     user_scores = {user_asurite[0]: (SCORE_MULTIPLIER * len(solves)) for user_asurite, solves in solves().items()}
-    user_grades = grades({user_asurite[0]: (SCORE_MULTIPLIER * len(solves)) for user_asurite, solves in solves().items() if user_asurite[1] in ENROLLED})
+    user_grades = grades({user_asurite[0]: (SCORE_MULTIPLIER * len(solves)) for user_asurite, solves in solves().items() if user_asurite[1] in {*ENROLLED.keys(), *ENROLLED.values()}})
 
     rank_length = max(len(str(len(user_scores))), len('Rank'))
     alias_length = max(*(len(user) for user in user_scores), len('Hacker'))
