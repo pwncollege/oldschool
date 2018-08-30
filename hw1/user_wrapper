@@ -227,7 +227,7 @@ def main():
     print()
     print()
 
-    if asurite in ENROLLED:
+    if asurite in {*ENROLLED.keys(), *ENROLLED.values()}:
         print("You are enrolled in the course! The scoreboard reflects your grade!")
     else:
         print("You are a guest user! You will not be graded!")
