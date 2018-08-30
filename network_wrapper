@@ -15,9 +15,9 @@ def main():
     password = input("Assignment Password: ")
     if password in HOMEWORK_PASSWORDS:
         hw = HOMEWORK_PASSWORDS[password]
-        path = MAIN_PATH / hw / 'user_wrapper'
+        path = str(MAIN_PATH / hw / 'user_wrapper')
         print(f"Launching {hw}...\n")
-        os.system(str(path))
+        os.system(f'su {hw} -c "path"')
     else:
         print("Wrong password! Check the mailing list.")
         return
