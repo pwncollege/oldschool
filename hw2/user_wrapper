@@ -9,8 +9,6 @@ from hashlib import sha256
 
 ##### CONSTANTS #####
 
-HOMEWORK_PASSWORD = '7hLhMc5L7xJRn26J'
-
 SECRET = '4N0Th3r_53cur3_p4ZZw0rD'
 SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
 
@@ -213,11 +211,6 @@ def grades(user_scores):
 def main():
     global alias
     global asurite
-
-    password = input("Password: ")
-    if password != HOMEWORK_PASSWORD:
-        print("Wrong password! Check the mailing list.")
-        return
 
     try:
         alias, asurite = login()
