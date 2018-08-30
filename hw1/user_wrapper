@@ -196,12 +196,6 @@ def run_docker(alias, binary_path):
         print("it should time out within 10 minutes.")
 
 def main():
-    if os.environ.get('CHECK_AUTH') == 'yes':
-        password = input("Password: ")
-        if password != 's3cr3t':
-            print("Wrong password! Check the mailing list.")
-            return
-
     alias = input("Hacker Alias: ")
     asurite = input("ASURITE: ")
 

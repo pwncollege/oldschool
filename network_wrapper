@@ -7,7 +7,7 @@ from pathlib import Path
 MAIN_PATH = Path(os.path.dirname(os.path.realpath(__file__)))
 
 HOMEWORK_PASSWORDS = {
-    # 's3cr3t': 'hw1',
+    's3cr3t': 'hw1',
     '7hLhMc5L7xJRn26J': 'hw2'
 }
 
