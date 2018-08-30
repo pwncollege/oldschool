@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 
 import os
-import pty
 
 from pathlib import Path
 
@@ -18,7 +17,7 @@ def main():
         hw = HOMEWORK_PASSWORDS[password]
         path = str(MAIN_PATH / hw / 'user_wrapper')
         print(f"Launching {hw}...\n")
-        pty.spawn(f'su {hw} -c "{path}"')
+        os.system(f'su {hw} -c "{path}"')
     else:
         print("Wrong password! Check the mailing list.")
         return
