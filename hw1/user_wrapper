@@ -2,30 +2,38 @@
 
 import os
 import re
-import sys
-import subprocess
 
 from collections import defaultdict
 from pathlib import Path
 from hashlib import sha256
 
-SECRET = '!f_y0u_f1nd_th!$_t311_u$'
+##### CONSTANTS #####
+
+SECRET = '4N0Th3r_53cur3_p4ZZw0rD'
 SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
 
 ALIAS_RE = '^[a-z0-9_]{2,15}$'
 OLD_ASURITE_RE = '^[a-z0-9]{2,15}$'
-BINARY_PATH_RE = '^/[a-zA-Z0-9/_\-\+]+$'  # Warning: Careful changing. May lead to command injection.
+BINARY_PATH_RE = '^/[a-zA-Z0-9/_\-\+]+$'
+
+SCORE_MULTIPLIER = 1
 
 ENROLLED = {
 
 }
 
-session_log = None
+##### GLOBAL SESSION INFO #####
+
+alias = None
+asurite = None
+
+##### INTERCEPT INPUT/OUTPUT ######
 
 original_print = print
 def print(s=''):
     s = f'[+++] {s}'
-    if session_log:
+    if alias and asurite:
+        session_log = Path.home() / f'{alias}:{asurite}' / 'session_log'
         with session_log.open('a') as f:
             f.write(s + '\n')
     original_print(s)
@@ -34,19 +42,22 @@ original_input = input
 def input(s=''):
     s = f'[+++] {s}'
     result = original_input(s)
-    if session_log:
+    if alias and asurite:
+        session_log = Path.home() / f'{alias}:{asurite}' / 'session_log'
         with session_log.open('a') as f:
             f.write(s + result + '\n')
     return result
 
-def login(alias, asurite):
-    if not re.match(ALIAS_RE, alias):
-        return f'Hacker Alias must match: {ALIAS_RE}'
-    if not re.match(OLD_ASURITE_RE, asurite):
-        return f'ASURITE must match: {OLD_ASURITE_RE}'
+##### USER CONTROLS #####
 
-    print()
-    print()
+def login():
+    alias = input("Hacker Alias: ")
+    asurite = input("ASURITE: ")
+
+    if not re.match(ALIAS_RE, alias):
+        raise Exception(f"Hacker Alias must match: {ALIAS_RE}")
+    if not re.match(ASURITE_RE, asurite):
+        raise Exception(f"ASURITE must match: {ASURITE_RE}")
 
     users = dict()
     for path in Path.home().iterdir():
@@ -54,22 +65,96 @@ def login(alias, asurite):
             existing_alias, existing_asurite = path.name.split(':', 1)
             users[existing_alias] = existing_asurite
 
-    user_path = Path.home() / f'{alias}:{asurite}'
-
     current_asurite = users.get(alias)
     if current_asurite == asurite:
-        return user_path
+        return alias, asurite # User exists, successful login
     elif alias not in users.keys() and asurite not in users.values():
+        user_path = Path.home() / f'{alias}:{asurite}'
         user_path.mkdir()
         (user_path / 'logs').mkdir()
         (user_path / 'solves').mkdir()
-        return user_path
+        return alias, asurite # User successfully created
     elif alias in users.keys():
-        return 'Hacker Alias already registered!'
+        raise Exception("Hacker Alias already registered!")
     elif asurite in users.values():
-        return 'ASURITE already registered!'
+        raise Exception("ASURITE already registered!")
     else:
         raise Exception("???")
+
+def show_scoreboard():
+    user_scores = {user: (SCORE_MULTIPLIER * len(solves)) for user, solves in solves().items()}
+    user_grades = grades({user: score for user, score in user_scores.items() if user in ENROLLED})
+
+    rank_length = max(len(str(len(user_scores))), len('Rank'))
+    alias_length = max(*(len(user) for user in user_scores), len('Hacker'))
+    score_length = max(*(len(str(user_scores[user])) for user in user_scores), len('Score'))
+    grade_length = max(*(len(str(user_grades[user])) for user in user_grades), len('Grade'), len('GUEST'))
+
+    print()
+    print("=" * 20 + " SCOREBOARD " + "=" * 20)
+    print(f"{'Rank':>{rank_length}}     {'Hacker':<{alias_length}}    {'Score':>{score_length}}    {'Grade':>{grade_length}}")
+    for i, alias in enumerate(reversed(sorted(user_scores, key=lambda k: user_scores[k]))):
+        grade = user_grades.get(alias, "GUEST")
+        print(f"{i+1:>{rank_length}}.    {alias:<{alias_length}}    {user_scores[alias]:>{score_length}}    {grade:>{grade_length}}")
+    print()
+
+def solve_challenge():
+    challenge = challenge_path()
+    base_challenge = challenge.replace('/', '_')
+    flag = challenge_flag(base_challenge)
+    # Kill any old docker container
+    os.system(f'for id in $(docker ps -q --filter="name=hw2_{alias}"); do docker kill $id; done;')
+
+    # Start new docker container
+    docker_arguments = [
+        ('--name', f'hw2_{alias}'),
+        ('--env', f'FLAG={flag}'),
+        ('--env', f'BINARY_FILE={challenge}'),
+        ('--cap-drop', 'dac_override'),
+        ('--cap-drop', 'dac_read_search'),
+        ('--cpus', '0.5'),
+        ('--memory', '500m'),
+        ('--memory-swap', '-1'),
+        ('--pids-limit', '100'),
+        # ('--device-write-bps', '/dev/sda:10kb')
+    ]
+    docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
+    log_path = str(Path.home() / f'{alias}:{asurite}' / 'logs' / base_challenge)
+    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw2" {log_path}')
+
+    submitted_flag = input("Flag: ")
+    if submitted_flag == flag:
+        print("Correct Flag!")
+        (Path.home() / f'{alias}:{asurite}' / 'solves' / base_challenge).touch()
+    else:
+        print("Wrong Flag!")
+
+##### UTILITY FUNCTIONS #####
+
+def challenge_flag(challenge):
+    return 'CSE466{' + sha256(f'{SECRET}+{alias}+{challenge}'.encode()).hexdigest() + '}'
+
+def challenge_path():
+    binary_path = input("Path to Binary: ")
+    if not re.match(BINARY_PATH_RE, binary_path):
+        print(f"Path to Binary must match: {BINARY_PATH_RE}")
+        return False
+
+    binary_path = re.sub('/+', '/', binary_path)
+
+    if binary_path.count('proc') > 1:
+        print("Don't be greedy!")
+        return False
+
+    return binary_path
+
+def solves():
+    result = dict()
+    for path in Path.home().iterdir():
+        if path.is_dir() and ':' in path.name:
+            current_alias, current_asurite = path.name.split(':', 1)
+            result[current_alias] = list((path / 'solves').iterdir())
+    return result
 
 def grades(user_scores):
     below_grades = {
@@ -129,137 +214,57 @@ def grades(user_scores):
 
     return {**below_grades, **above_grades}
 
-def show_scoreboard():
-    user_scores = dict()
-    user_grades = dict()
-    for path in Path.home().iterdir():
-        if path.is_dir() and ':' in path.name:
-            current_alias, current_asurite = path.name.split(':', 1)
-            solves = len(list((path / 'solves').iterdir()))
-            user_scores[current_alias] = solves
-            if current_asurite in ENROLLED.keys() or current_asurite in ENROLLED.values():
-                user_grades[current_alias] = solves
-
-    user_grades = grades(user_grades)
-
-    rank_length = max(len(str(len(user_scores))), len('Rank'))
-    alias_length = max(max(len(user) for user in user_scores), len('Hacker'))
-    score_length = max(max(len(str(user_scores[user])) for user in user_scores), len('Score'))
-    grade_length = max(max(len(str(user_grades[user])) for user in user_grades), len('Grade'), len('GUEST'))
-
-    print()
-    print("=" * 20 + " SCOREBOARD " + "=" * 20)
-    print(f"{'Rank':>{rank_length}}     {'Hacker':<{alias_length}}    {'Score':>{score_length}}    {'Grade':>{grade_length}}")
-    for i, alias in enumerate(reversed(sorted(user_scores, key=lambda k: user_scores[k]))):
-        grade = user_grades.get(alias, "GUEST")
-        print(f"{i+1:>{rank_length}}.    {alias:<{alias_length}}    {user_scores[alias]:>{score_length}}    {grade:>{grade_length}}")
-    print()
-
-def get_binary_path():
-    # Warning: Careful changing. May lead to command injection / extra flags.
-
-    binary_path = input("Path to Binary: ")
-    if not re.match(BINARY_PATH_RE, binary_path):
-        print(f"Path to Binary must match: {BINARY_PATH_RE}")
-        return False
-
-    binary_path = re.sub('/+', '/', binary_path)
-
-    if binary_path.count('proc') > 1:
-        print("Don't be greedy!")
-        return False
-
-    return binary_path
-
-def solve(binary_path, alias, log_path):
-    flag = sha256(f'{SECRET}+{alias}+{binary_path}'.encode()).hexdigest()
-    flag = 'CSE466{' + flag + '}'
-    cmd = f'script -aqec "{sys.argv[0]} EXECUTE {alias} {binary_path}" {str(log_path)}'
-    result = os.system(cmd)
-    #p = subprocess.Popen(['script', '-aqec', docker, f'{str(log_path)}'], stdin=0, stderr=2, stdout=1, env={'SAFETY_SECRET':SAFETY_SECRET})
-    #result = p.wait()
-
-    input_flag = input("Flag: ")
-    return input_flag == flag
-
-def run_docker(alias, binary_path):
-    flag = sha256(f'{SECRET}+{alias}+{binary_path}'.encode()).hexdigest()
-    flag = 'CSE466{' + flag + '}'
-    docker = (f'for id in $(docker ps -q --filter="name=hw1_{alias}"); do docker kill $id; done; '
-              f'docker run --name hw1_{alias} --rm -it -e FLAG={flag} -e BINARY_FILE={binary_path} --cpus=0.5 --memory=500m --memory-swap=-1 --pids-limit=100 hw1')
-
-    result = os.system(docker)
-    if result != 0:
-        print("Container returned an error! This might be because your last")
-        print("command failed (which is okay) or because you already have another")
-        print("session running. If you have lost connection to your other session,")
-        print("it should time out within 10 minutes.")
+##### MAIN #####
 
 def main():
-    alias = input("Hacker Alias: ")
-    asurite = input("ASURITE: ")
+    global alias
+    global asurite
 
-    result = login(alias, asurite)
-    if type(result) is str:
-        print(result)
+    try:
+        alias, asurite = login()
+    except Exception as e:
+        print(str(e))
         return
 
-    if asurite in ENROLLED.keys() or asurite in ENROLLED.values():
-        print("You are enrolled in the course! The scoreboard reflects your grade!")
-        enrolled = True
-    else:
-        print("You are a guest user! You will not be graded!")
-        enrolled = False
-
+    print()
     print()
 
-    user_path = result
-    global session_log
-    session_log = result / 'session_log'
+    if asurite in ENROLLED:
+        print("You are enrolled in the course! The scoreboard reflects your grade!")
+    else:
+        print("You are a guest user! You will not be graded!")
 
-    running = True
-    while running:
-        print("1. Show Scoreboard")
-        print("2. Solve HW1")
-        print("3. Quit")
+    print()
+    print()
 
+    while True:
         try:
-            choice = int(input("Choice: "))
-        except ValueError:
-            choice = 0
+            print("1. Show Scoreboard")
+            print("2. Solve Challenge")
+            print("3. Quit")
 
-        if choice == 1:
-            show_scoreboard()
+            try:
+                choice = int(input("Choice: "))
+            except ValueError:
+                choice = 0
 
-        elif choice == 2:
-            binary_path = get_binary_path()
+            if choice == 1:
+                show_scoreboard()
 
-            if binary_path:
-                solved = solve(binary_path, alias, (user_path / 'logs' / binary_path.replace('/', '_')))
+            elif choice == 2:
+                solve_challenge()
 
-                if solved is True:
-                    print("Correct Flag!")
-                    (user_path / 'solves' / binary_path.replace('/', '_')).touch()
+            elif choice == 3:
+                return
 
-                elif solved is False:
-                    print("Wrong Flag!")
+            else:
+                print("Invalid Choice!")
 
-        elif choice == 3:
-            running = False
-
-        else:
-            print("Invalid choice!")
+        except Exception as e:
+            print(str(e))
 
         print()
         print()
 
 if __name__ == '__main__':
-    if os.environ.get('SAFETY_SECRET', '') == SAFETY_SECRET and len(sys.argv) == 4 and sys.argv[1] == 'EXECUTE':
-        run_docker(sys.argv[2], sys.argv[3])
-    else:
-        CHECK_AUTH = os.environ.get('CHECK_AUTH')
-        os.environ.clear()
-        os.environ['SAFETY_SECRET'] = SAFETY_SECRET
-        if CHECK_AUTH:
-            os.environ['CHECK_AUTH'] = CHECK_AUTH
-        main()
+    main()
