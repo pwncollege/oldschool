@@ -116,7 +116,7 @@ def solve_challenge():
         ('--memory', '500m'),
         ('--memory-swap', '-1'),
         ('--pids-limit', '100'),
-        ('--device-write-bps', '/dev/sda:10kb')
+        # ('--device-write-bps', '/dev/sda:10kb')
     ]
     docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
     log_path = str(Path.home() / f'{alias}:{asurite}' / 'logs' / base_challenge)

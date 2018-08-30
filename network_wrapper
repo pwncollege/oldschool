@@ -12,11 +12,11 @@ HOMEWORK_PASSWORDS = {
 }
 
 def main():
-    password = input("Password: ")
+    password = input("Assignment Password: ")
     if password in HOMEWORK_PASSWORDS:
         hw = HOMEWORK_PASSWORDS[password]
         path = MAIN_PATH / hw / 'user_wrapper'
-        print(f"Launching {hw}...")
+        print(f"Launching {hw}...\n")
         os.system(str(path))
     else:
         print("Wrong password! Check the mailing list.")
