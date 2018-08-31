@@ -29,19 +29,17 @@ asurite = None
 
 ##### INTERCEPT INPUT/OUTPUT ######
 
-original_print = print
 def print(s=''):
     s = f'[+++] {s}'
     if alias and asurite:
         session_log = Path.home() / f'{alias}:{asurite}' / 'session_log'
         with session_log.open('a') as f:
             f.write(s + '\n')
-    original_print(s)
+    __builtins__.print(s)
 
-original_input = input
 def input(s=''):
     s = f'[+++] {s}'
-    result = original_input(s)
+    result = __builtins__.input(s)
     if alias and asurite:
         session_log = Path.home() / f'{alias}:{asurite}' / 'session_log'
         with session_log.open('a') as f:
@@ -218,11 +216,7 @@ def main():
     global alias
     global asurite
 
-    try:
-        alias, asurite = login()
-    except Exception as e:
-        print(str(e))
-        return
+    alias, asurite = login()
 
     print()
     print()
@@ -236,33 +230,33 @@ def main():
     print()
 
     while True:
+        print("1. Show Scoreboard")
+        print("2. Solve Challenge")
+        print("3. Quit")
+
         try:
-            print("1. Show Scoreboard")
-            print("2. Solve Challenge")
-            print("3. Quit")
+            choice = int(input("Choice: "))
+        except ValueError:
+            choice = 0
 
-            try:
-                choice = int(input("Choice: "))
-            except ValueError:
-                choice = 0
+        if choice == 1:
+            show_scoreboard()
 
-            if choice == 1:
-                show_scoreboard()
+        elif choice == 2:
+            solve_challenge()
 
-            elif choice == 2:
-                solve_challenge()
+        elif choice == 3:
+            return
 
-            elif choice == 3:
-                return
-
-            else:
-                print("Invalid Choice!")
-
-        except Exception as e:
-            print(str(e))
+        else:
+            print("Invalid Choice!")
 
         print()
         print()
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(str(e))
+        return
