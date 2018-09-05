@@ -4,7 +4,7 @@
 
 Number of solves for each binary:
 ```sh
-ls /home/<HOMEWORK>/*/solves/* | tr -t '/solves/' ' ' | awk '{print $3}' | sort | uniq -c | sort -r | awk 'BEGIN {print "Solves Binary"} {print $1 " " $2}' | column -t
+ls */solves/* | tr -t '/solves/' ' ' | awk '{print $3}' | sort | uniq -c | sort -r | awk 'BEGIN {print "Solves Binary"} {print $1 " " $2}' | column -t
 ```
 
 Scoreboard without guests:
