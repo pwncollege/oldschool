@@ -45,7 +45,8 @@ challenge_footer = """
 	if (success)
 	{
 		puts("Correct! Here is your flag:");
-		system("/get_flag");
+		fflush(stdout);
+		execl("/get_flag", "/get_flag", NULL);
 		exit(0);
 	}
 	else

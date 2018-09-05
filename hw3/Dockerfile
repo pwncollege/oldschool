@@ -16,5 +16,5 @@ copy get_flag /get_flag
 run chown root.nogroup /get_flag
 run chmod 2750 /get_flag
 
-run adduser hw2
+run adduser hw3
 cmd "/start"
