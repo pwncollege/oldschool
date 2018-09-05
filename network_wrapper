@@ -8,7 +8,8 @@ MAIN_PATH = Path(os.path.dirname(os.path.realpath(__file__)))
 
 HOMEWORK_PASSWORDS = {
     's3cr3t': 'hw1',
-    '7hLhMc5L7xJRn26J': 'hw2'
+    '7hLhMc5L7xJRn26J': 'hw2',
+    '34s13r_p4ssw0rd': 'hw3',
 }
 
 def main():
