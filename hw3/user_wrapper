@@ -74,7 +74,7 @@ def login():
         (user_path / 'solves').mkdir()
 
         try:
-            challenge = list(Path.home() / 'challenges').iterdir())[0]
+            challenge = list((Path.home() / 'challenges').iterdir())[0]
             shutil.rename(str(challenge), str(user_path / 'challenges'))
         except:
             raise Exception("Error: Yan's fault")
