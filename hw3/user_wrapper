@@ -117,7 +117,7 @@ def solve_challenge():
     # Start new docker container
     docker_arguments = [
         ('--name', f'hw3_{alias}'),
-        ('--volume', f'{challenges}:/challenges'),
+        ('--volume', f"'{challenges}:/challenges'"),
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
         ('--cap-drop', 'dac_override'),
