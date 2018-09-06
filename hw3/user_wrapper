@@ -15,7 +15,7 @@ SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
 
 ALIAS_RE = '^[a-z0-9_]{2,15}$'
 ASURITE_RE = '^[a-z]{2,15}[0-9]{0,3}$'
-BINARY_PATH_RE = '^/challenges/[a-z_]+$'
+BINARY_PATH_RE = '^/pwn/[a-z_]+$'
 
 SCORE_MULTIPLIER = 2
 
@@ -117,7 +117,7 @@ def solve_challenge():
     # Start new docker container
     docker_arguments = [
         ('--name', f'hw3_{alias}'),
-        ('--mount', f'type=bind,source={challenges},destination=/challenges'),
+        ('--mount', f'type=bind,source={challenges},destination=/challenges,readonly'),
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
         ('--cap-drop', 'dac_override'),
