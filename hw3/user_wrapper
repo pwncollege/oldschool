@@ -75,7 +75,7 @@ def login():
 
         try:
             challenge = list((Path.home() / 'challenges').iterdir())[0]
-            shutil.rename(str(challenge), str(user_path / 'challenges'))
+            shutil.move(str(challenge), str(user_path / 'challenges'))
         except:
             raise Exception("Error: Yan's fault")
 
@@ -110,13 +110,13 @@ def solve_challenge():
     flag = challenge_flag(base_challenge)
 
     # Kill any old docker container
-    os.system(f'for id in $(docker ps -q --filter="name=hw2_{alias}"); do docker kill $id; done;')
+    os.system(f'for id in $(docker ps -q --filter="name=hw3_{alias}"); do docker kill $id; done;')
 
     challenges = str(Path.home() / f'{alias}:{asurite}' / 'challenges')
 
     # Start new docker container
     docker_arguments = [
-        ('--name', f'hw2_{alias}'),
+        ('--name', f'hw3_{alias}'),
         ('--volume', f'{challenges}:/challenges'),
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
@@ -130,7 +130,7 @@ def solve_challenge():
     ]
     docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
     log_path = str(Path.home() / f'{alias}:{asurite}' / 'logs' / base_challenge)
-    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw2" {log_path}')
+    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw3" {log_path}')
 
     submitted_flag = input("Flag: ")
     if submitted_flag == flag:
@@ -138,6 +138,11 @@ def solve_challenge():
         (Path.home() / f'{alias}:{asurite}' / 'solves' / base_challenge).touch()
     else:
         print("Wrong Flag!")
+
+def show_challenges():
+    challenges = Path.home() / f'{alias}:{asurite}' / 'challenges'
+    for challenge in challenges.iterdir():
+        print(challenge.name)
 
 ##### UTILITY FUNCTIONS #####
 
@@ -238,7 +243,8 @@ def main():
     while True:
         print("1. Show Scoreboard")
         print("2. Solve Challenge")
-        print("3. Quit")
+        print("3. Show Challenges")
+        print("4. Quit")
 
         try:
             choice = int(input("Choice: "))
@@ -252,6 +258,9 @@ def main():
             solve_challenge()
 
         elif choice == 3:
+            show_challenges()
+
+        elif choice == 4:
             return
 
         else:
