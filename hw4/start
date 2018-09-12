@@ -33,9 +33,8 @@ then
 fi
 
 echo "$FLAG" > /flag
-chmod 040 /flag
-chown nobody.nogroup /flag
+chmod 400 /flag
+chown root.root /flag
 chown root.root $BINARY_FILE
 chmod 4755 $BINARY_FILE
-chmod u+s /bin/kill
-exec env -i su - hw3
+exec env -i FLAG="wouldnt_you_like_to_know" su - hw4
