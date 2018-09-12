@@ -1,0 +1,276 @@
+#! /usr/bin/env python3
+
+import os
+import re
+import shutil
+
+from collections import defaultdict
+from pathlib import Path
+from hashlib import sha256
+
+##### CONSTANTS #####
+
+SECRET = 'r34lly_4N0Th3r_53cur3_p4ZZw0rD'
+SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
+
+ALIAS_RE = '^[a-z0-9_]{2,15}$'
+ASURITE_RE = '^[a-z]{2,15}[0-9]{0,3}$'
+BINARY_PATH_RE = '^/pwn/[a-z_]+$'
+
+SCORE_MULTIPLIER = 2
+
+ENROLLED = {
+
+}
+
+##### GLOBAL SESSION INFO #####
+
+alias = None
+asurite = None
+
+##### INTERCEPT INPUT/OUTPUT ######
+
+def print(s=''):
+    s = f'[+++] {s}'
+    if alias and asurite:
+        session_log = Path.home() / f'{alias}:{asurite}' / 'session_log'
+        with session_log.open('a') as f:
+            f.write(s + '\n')
+    __builtins__.print(s)
+
+def input(s=''):
+    s = f'[+++] {s}'
+    result = __builtins__.input(s)
+    if alias and asurite:
+        session_log = Path.home() / f'{alias}:{asurite}' / 'session_log'
+        with session_log.open('a') as f:
+            f.write(s + result + '\n')
+    return result
+
+##### USER CONTROLS #####
+
+def login():
+    alias = input("Hacker Alias: ")
+    asurite = input("ASURITE: ")
+
+    if not re.match(ALIAS_RE, alias):
+        raise Exception(f"Hacker Alias must match: {ALIAS_RE}")
+    if not re.match(ASURITE_RE, asurite):
+        raise Exception(f"ASURITE must match: {ASURITE_RE}")
+
+    users = dict()
+    for path in Path.home().iterdir():
+        if path.is_dir() and ':' in path.name:
+            existing_alias, existing_asurite = path.name.split(':', 1)
+            users[existing_alias] = existing_asurite
+
+    current_asurite = users.get(alias)
+    if current_asurite == asurite:
+        return alias, asurite # User exists, successful login
+    elif alias not in users.keys() and asurite not in users.values():
+        user_path = Path.home() / f'{alias}:{asurite}'
+        user_path.mkdir()
+        (user_path / 'logs').mkdir()
+        (user_path / 'solves').mkdir()
+
+        try:
+            challenge = list((Path.home() / 'challenges').iterdir())[0]
+            shutil.move(str(challenge), str(user_path / 'challenges'))
+        except:
+            raise Exception("Error: Yan's fault")
+
+        return alias, asurite # User successfully created
+    elif alias in users.keys():
+        raise Exception("Hacker Alias already registered!")
+    elif asurite in users.values():
+        raise Exception("ASURITE already registered!")
+    else:
+        raise Exception("???")
+
+def show_scoreboard():
+    user_scores = {user_asurite[0]: (SCORE_MULTIPLIER * len(solves)) for user_asurite, solves in solves().items()}
+    user_grades = grades({user_asurite[0]: (SCORE_MULTIPLIER * len(solves)) for user_asurite, solves in solves().items() if user_asurite[1] in ENROLLED})
+
+    rank_length = max(len(str(len(user_scores))), len('Rank'))
+    alias_length = max(*(len(user) for user in user_scores), len('Hacker'))
+    score_length = max(*(len(str(user_scores[user])) for user in user_scores), len('Score'))
+    grade_length = max(*(len(str(user_grades[user])) for user in user_grades), len('Grade'), len('GUEST'))
+
+    print()
+    print("=" * 20 + " SCOREBOARD " + "=" * 20)
+    print(f"{'Rank':>{rank_length}}     {'Hacker':<{alias_length}}    {'Score':>{score_length}}    {'Grade':>{grade_length}}")
+    for i, alias in enumerate(reversed(sorted(user_scores, key=lambda k: user_scores[k]))):
+        grade = user_grades.get(alias, "GUEST")
+        print(f"{i+1:>{rank_length}}.    {alias:<{alias_length}}    {user_scores[alias]:>{score_length}}    {grade:>{grade_length}}")
+    print()
+
+def solve_challenge():
+    challenge = challenge_path()
+    base_challenge = os.path.basename(challenge)
+    flag = challenge_flag(base_challenge)
+
+    # Kill any old docker container
+    os.system(f'for id in $(docker ps -q --filter="name=hw3_{alias}"); do docker kill $id; done;')
+
+    challenges = str(Path.home() / f'{alias}:{asurite}' / 'challenges')
+
+    # Start new docker container
+    docker_arguments = [
+        ('--name', f'hw3_{alias}'),
+        ('--mount', f'type=bind,source={challenges},destination=/challenges,readonly'),
+        ('--env', f'FLAG={flag}'),
+        ('--env', f'BINARY_FILE={challenge}'),
+        ('--cap-drop', 'dac_override'),
+        ('--cap-drop', 'dac_read_search'),
+        ('--cpus', '0.5'),
+        ('--memory', '500m'),
+        ('--memory-swap', '-1'),
+        ('--pids-limit', '100'),
+        # ('--device-write-bps', '/dev/sda:10kb')
+    ]
+    docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
+    log_path = str(Path.home() / f'{alias}:{asurite}' / 'logs' / base_challenge)
+    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw3" {log_path}')
+
+    submitted_flag = input("Flag: ")
+    if submitted_flag == flag:
+        print("Correct Flag!")
+        (Path.home() / f'{alias}:{asurite}' / 'solves' / base_challenge).touch()
+    else:
+        print("Wrong Flag!")
+
+def show_challenges():
+    challenges = Path.home() / f'{alias}:{asurite}' / 'challenges'
+    for challenge in challenges.iterdir():
+        print(challenge.name)
+
+##### UTILITY FUNCTIONS #####
+
+def challenge_flag(challenge):
+    return 'CSE466{' + sha256(f'{SECRET}+{alias}+{challenge}'.encode()).hexdigest() + '}'
+
+def challenge_path():
+    challenge = input("Path to Binary: ")
+    if not re.match(BINARY_PATH_RE, challenge):
+        raise Exception(f"Path to Binary must match: {BINARY_PATH_RE}")
+    return challenge
+
+def solves():
+    result = dict()
+    for path in Path.home().iterdir():
+        if path.is_dir() and ':' in path.name:
+            current_alias, current_asurite = path.name.split(':', 1)
+            result[(current_alias, current_asurite)] = list((path / 'solves').iterdir())
+    return result
+
+def grades(user_scores):
+    below_grades = {
+        user: score
+        for user, score in user_scores.items()
+        if score <= 70
+    }
+    above_grades = {
+        user: score
+        for user, score in user_scores.items()
+        if score > 70
+    }
+
+    above_score_users = defaultdict(list)
+    for user, score in above_grades.items():
+        above_score_users[score].append(user)
+
+    clusters = {
+        (score, score): above_score_users[score]
+        for score in sorted(above_score_users)
+    }
+
+    while len(clusters) > 40:
+        closest_low = None
+        closest_high = None
+        closest_distance = None
+
+        prev_cluster = None
+        for cluster in sorted(clusters.keys(), key=lambda k: k[0]):
+            if closest_low is None:
+                closest_low = cluster
+            elif closest_high is None:
+                closest_high = cluster
+                closest_distance = closest_high[0] - closest_low[1]
+            else:
+                current_distance = cluster[0] - prev_cluster[1]
+                if current_distance < closest_distance:
+                    closest_low = prev_cluster
+                    closest_high = cluster
+                    closest_distance = current_distance
+            prev_cluster = cluster
+
+        new_cluster = (closest_low[0], closest_high[1])
+        new_cluster_data = [*clusters[closest_low], *clusters[closest_high]]
+
+        del clusters[closest_low]
+        del clusters[closest_high]
+        clusters[new_cluster] = new_cluster_data
+
+    above_grades = dict()
+    score = 110
+    for cluster in reversed(sorted(clusters.keys(), key=lambda k: k[0])):
+        cluster_data = clusters[cluster]
+        for user in cluster_data:
+            above_grades[user] = score
+        score -= 1
+
+    return {**below_grades, **above_grades}
+
+##### MAIN #####
+
+def main():
+    global alias
+    global asurite
+
+    alias, asurite = login()
+
+    print()
+    print()
+
+    if asurite in ENROLLED:
+        print("You are enrolled in the course! The scoreboard reflects your grade!")
+    else:
+        print("You are a guest user! You will not be graded!")
+
+    print()
+    print()
+
+    while True:
+        print("1. Show Scoreboard")
+        print("2. Solve Challenge")
+        print("3. Show Challenges")
+        print("4. Quit")
+
+        try:
+            choice = int(input("Choice: "))
+        except ValueError:
+            choice = 0
+
+        if choice == 1:
+            show_scoreboard()
+
+        elif choice == 2:
+            solve_challenge()
+
+        elif choice == 3:
+            show_challenges()
+
+        elif choice == 4:
+            return
+
+        else:
+            print("Invalid Choice!")
+
+        print()
+        print()
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        print(str(e))
