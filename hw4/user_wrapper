@@ -10,7 +10,7 @@ from hashlib import sha256
 
 ##### CONSTANTS #####
 
-SECRET = 'r34lly_4N0Th3r_53cur3_p4ZZw0rD'
+SECRET = 'bu7_r34lly_4N0Th3r_53cur3_p4ZZw0rD'
 SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
 
 ALIAS_RE = '^[a-z0-9_]{2,15}$'
@@ -110,13 +110,13 @@ def solve_challenge():
     flag = challenge_flag(base_challenge)
 
     # Kill any old docker container
-    os.system(f'for id in $(docker ps -q --filter="name=hw3_{alias}"); do docker kill $id; done;')
+    os.system(f'for id in $(docker ps -q --filter="name=hw4_{alias}"); do docker kill $id; done;')
 
     challenges = str(Path.home() / f'{alias}:{asurite}' / 'challenges')
 
     # Start new docker container
     docker_arguments = [
-        ('--name', f'hw3_{alias}'),
+        ('--name', f'hw4_{alias}'),
         ('--mount', f'type=bind,source={challenges},destination=/challenges,readonly'),
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
@@ -130,7 +130,7 @@ def solve_challenge():
     ]
     docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
     log_path = str(Path.home() / f'{alias}:{asurite}' / 'logs' / base_challenge)
-    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw3" {log_path}')
+    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw4" {log_path}')
 
     submitted_flag = input("Flag: ")
     if submitted_flag == flag:
