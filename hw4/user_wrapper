@@ -120,8 +120,6 @@ def solve_challenge():
         ('--mount', f'type=bind,source={challenges},destination=/challenges,readonly'),
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
-        ('--cap-drop', 'dac_override'),
-        ('--cap-drop', 'dac_read_search'),
         ('--cpus', '0.5'),
         ('--memory', '500m'),
         ('--memory-swap', '-1'),
