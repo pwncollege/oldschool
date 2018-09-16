@@ -70,6 +70,28 @@ __attribute__((constructor)) void set_canary()
 	read(canary_fd, canary_str, 7);
 	read(canary_fd, canary_str, 16);
     uint64_t new_canary = strtoull(canary_str, NULL, 16);
+
+    uint64_t old_canary;
+    __asm__ __volatile__ (
+        ".intel_syntax noprefix;"
+        "mov %0, QWORD PTR fs:0x28;"
+        ".att_syntax;"
+        : "=r"(old_canary)
+        :
+        :
+    );
+
+    uint64_t *canary_ptr = &old_canary;
+    while (1)
+    {
+		canary_ptr++;
+		if (*canary_ptr == old_canary)
+		{
+			*canary_ptr = new_canary;
+			break;
+		}
+    }
+
     __asm__ __volatile__ (
         ".intel_syntax noprefix;"
         "mov rax, %0;"
@@ -324,10 +346,11 @@ def create(dirname):
 	# 6 total input types
 	# 11 difficulty levels
 	# 2 per type per level
-	#for _u in tqdm.tqdm(range(200)):
-	for _u in [ 0 ]:
+	for _u in tqdm.tqdm(range(200)):
+	#for _u in [ 1337 ]:
 		#for _d,_l in list(enumerate(levels))[3:]:
-		for _d,_l in enumerate(levels):
+		#for _d,_l in enumerate(levels):
+		for _d,_l in [(5, levels[5])]:
 			_s_start = 100000*_u + 1000*_d
 			_s_end = _s_start + 3
 			for _s in range(_s_start, _s_end):
@@ -337,7 +360,7 @@ def create(dirname):
 				print _u,_d,_chal_name,_s
 				c = _l(_s)
 				c.compile(os.path.join(dirname, str(_u), _chal_name))
-				c.test()
+				#c.test()
 
 if __name__ == '__main__':
 	create('challenges')
