@@ -10,7 +10,7 @@ from hashlib import sha256
 
 ##### CONSTANTS #####
 
-SECRET = 'bu7_r34lly_4N0Th3r_53cur3_p4ZZw0rD'
+SECRET = '4ctu4lly_bu7_r34lly_4N0Th3r_53cur3_p4ZZw0rD'
 SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
 
 ALIAS_RE = '^[a-z0-9_]{2,15}$'
@@ -120,6 +120,7 @@ def solve_challenge():
         ('--mount', f'type=bind,source={challenges},destination=/challenges,readonly'),
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
+        ('--cap-add', 'SYS_PTRACE'),
         ('--cpus', '0.5'),
         ('--memory', '500m'),
         ('--memory-swap', '-1'),
