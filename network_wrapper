@@ -11,6 +11,7 @@ HOMEWORK_PASSWORDS = {
     '7hLhMc5L7xJRn26J': 'hw2',
     '34s13r_p4ssw0rd': 'hw3',
     'n0t_3v3n_d1ff1cul7': 'hw4',
+    'w0uld_y0u_l1k3_ssh_w1th_th4t': 'hw5',
 }
 
 def main():

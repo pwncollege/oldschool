@@ -110,16 +110,18 @@ def solve_challenge():
     flag = challenge_flag(base_challenge)
 
     # Kill any old docker container
-    os.system(f'for id in $(docker ps -q --filter="name=hw4_{alias}"); do docker kill $id; done;')
+    os.system(f'for id in $(docker ps -q --filter="name=hw5_{alias}"); do docker kill $id; done;')
 
     challenges = str(Path.home() / f'{alias}:{asurite}' / 'challenges')
 
     # Start new docker container
     docker_arguments = [
-        ('--name', f'hw4_{alias}'),
-        ('--mount', f'type=bind,source={challenges},destination=/challenges,readonly'),
+        ('--name', f'hw5_{alias}'),
+        ('--env', f'PASSWORD={asurite}'),
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
+        ('--mount', f'type=bind,source={challenges},destination=/challenges,readonly'),
+        ('--publish', '22000-25000:22'),
         ('--cap-add', 'SYS_PTRACE'),
         ('--cpus', '0.5'),
         ('--memory', '500m'),
@@ -129,7 +131,8 @@ def solve_challenge():
     ]
     docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
     log_path = str(Path.home() / f'{alias}:{asurite}' / 'logs' / base_challenge)
-    os.system(f'script -aqec "docker run -it --rm {docker_arguments} hw4" {log_path}')
+    os.system(f'docker run -td --rm {docker_arguments} hw5')
+    os.system(f'docker ps --filter="name=hw5_{alias}"')
 
     submitted_flag = input("Flag: ")
     if submitted_flag == flag:

@@ -1,0 +1,43 @@
+#!/bin/bash -e
+
+[ -f /start ] && rm -f /start
+
+cp -r /challenges /pwn
+
+if [ -z "$BINARY_FILE" ]
+then
+	echo "[!!!] BINARY FILE NOT SPECIFIED. EXITING."
+	exit 1
+fi
+
+if [ -z "$FLAG" ]
+then
+	echo "[!!!] FLAG NOT SPECIFIED. EXITING."
+	exit 1
+fi
+
+if ! file $BINARY_FILE | grep -q ELF
+then
+	echo "[!!!] ERROR: $BINARY_FILE is NOT an ELF file."
+	echo "[!!!]        this means that suid will not have any effect."
+	echo "[!!!]        (see https://www.vidarholen.net/contents/blog/?p=30)"
+	echo "[!!!]"
+	echo "[!!!] You can see the type of the file yourself by running:"
+	echo "[!!!]"
+	echo "[!!!]     file $BINARY_FILE"
+	echo "[!!!]"
+	echo "[!!!] In this case, it is:"
+	file $BINARY_FILE
+	echo "[!!!] This session will now terminate. Please choose an ELF file next time."
+	exit 1
+fi
+
+echo "$FLAG" > /flag
+chmod 400 /flag
+chown root.root /flag
+chown root.root $BINARY_FILE
+chmod 4755 $BINARY_FILE
+
+echo "hw5:$PASSWORD" | chpasswd
+
+exec env -i FLAG="wouldnt_you_like_to_know" /usr/sbin/sshd -D
