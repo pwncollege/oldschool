@@ -40,4 +40,6 @@ chmod 4755 $BINARY_FILE
 
 echo "hw5:$PASSWORD" | chpasswd
 
+mkdir -p /var/run/sshd
+
 exec env -i FLAG="wouldnt_you_like_to_know" /usr/sbin/sshd -D
