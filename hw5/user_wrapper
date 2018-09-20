@@ -121,6 +121,7 @@ def solve_challenge():
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
         ('--mount', f'type=bind,source={challenges},destination=/challenges,readonly'),
+        ('--mount', f'type=bind,source=/shared,destination=/shared,readonly'),
         ('--publish', '22000-25000:22'),
         ('--cap-add', 'SYS_PTRACE'),
         ('--cpus', '0.5'),
