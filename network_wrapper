@@ -7,19 +7,20 @@ from pathlib import Path
 MAIN_PATH = Path(os.path.dirname(os.path.realpath(__file__)))
 
 HOMEWORK_PASSWORDS = {
-    's3cr3t': 'hw1',
-    '7hLhMc5L7xJRn26J': 'hw2',
-    '34s13r_p4ssw0rd': 'hw3',
-    'n0t_3v3n_d1ff1cul7': 'hw4',
-    'w0uld_y0u_l1k3_ssh_w1th_th4t': 'hw5',
+    'hw1': {'s3cr3t', 'shellphish_1'},
+    'hw2': {'7hLhMc5L7xJRn26J', 'shellphish_2'},
+    'hw3': {'34s13r_p4ssw0rd', 'shellphish_3'},
+    'hw4': {'n0t_3v3n_d1ff1cul7', 'shellphish_4'},
+    'hw5': {'w0uld_y0u_l1k3_ssh_w1th_th4t', 'shellphish_5'},
 }
 
 def main():
     password = input("Assignment Password: ")
-    if password in HOMEWORK_PASSWORDS:
-        hw = HOMEWORK_PASSWORDS[password]
-        path = str(MAIN_PATH / hw / 'user_wrapper')
-        os.system(f'su {hw} -c "{path}"')
+    for hw, passwords in HOMEWORK_PASSWORDS.items():
+        if password in passwords:
+            path = str(MAIN_PATH / hw / 'user_wrapper')
+            os.system(f'su {hw} -c "{path}"')
+            break
     else:
         print("Wrong password! Check the mailing list.")
         return
