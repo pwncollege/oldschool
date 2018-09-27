@@ -1,8 +1,8 @@
 #from ubuntu:bionic
 from hw1
 
-run apt-get update
-run apt-get -y install file
+#run apt-get update
+#run apt-get -y install file
 run rm -f /start.sh
 copy start /start
 copy get_flag /get_flag

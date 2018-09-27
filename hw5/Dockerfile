@@ -10,6 +10,11 @@ run apt-get install -y openssh-client python-dev python3-dev netcat-openbsd soca
 run apt-get install -y screen tmux git
 run apt-get install -y openssh-server
 
+run pip install ipython pwntools
+
+run apt-get install -y gdb
+run cd /tmp; git clone https://github.com/pwndbg/pwndbg; cd pwndbg; ./setup.sh
+
 # cleanup
 run find / -type f -perm -4000 | xargs chmod u-s
 
