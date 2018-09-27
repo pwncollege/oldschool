@@ -13,9 +13,11 @@ from hashlib import sha256
 SECRET = 'sup3r_4ctu4lly_bu7_r34lly_4N0Th3r_53cur3_p4ZZw0rD'
 SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
 
+CATEGORIES = ['babyshell']
+
 ALIAS_RE = '^[a-z0-9_]{2,15}$'
 ASURITE_RE = '^[a-z]{2,15}[0-9]{0,3}$'
-BINARY_PATH_RE = '^/pwn/baby(pwn|key)/[a-z0-9_]+$'
+BINARY_PATH_RE = '^/pwn/(' + '|'.join(CATEGORIES) + ')/[a-z0-9_]+$'
 
 SCORE_MULTIPLIER = 3
 
@@ -143,13 +145,10 @@ def solve_challenge():
 		print("Wrong Flag!")
 
 def show_challenges():
-	challenges = Path.home() / f'{alias}:{asurite}' / 'challenges' / 'babypwn'
-	for challenge in challenges.iterdir():
-		print(f"/pwn/babypwn/{challenge.name}")
-
-	challenges = Path.home() / f'{alias}:{asurite}' / 'challenges' / 'babykey'
-	for challenge in challenges.iterdir():
-		print(f"/pwn/babykey/{challenge.name}")
+        for category in CATEGORIES:
+	        challenges = Path.home() / f'{alias}:{asurite}' / 'challenges' / category
+	        for challenge in challenges.iterdir():
+		        print(f"/pwn/{category}/{challenge.name}")
 
 ##### UTILITY FUNCTIONS #####
 
