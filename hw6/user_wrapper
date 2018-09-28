@@ -112,11 +112,11 @@ def solve_challenge():
 	flag = challenge_flag(base_challenge)
 
 	# Kill any old docker container
-        filters = ['created', 'paused', 'exited', 'dead']
-        cmd = 'docker ps -aq ' + ' '.join(f'--filter "status={f}"' for f in filters) + f' --filter "name=hw6_{alias}" | xargs -r docker rm'
-        os.system(cmd)
-        cmd = f'docker ps -q --filter "name=hw6_{alias}" | xargs -r docker kill'
-        os.system(cmd)
+	filters = ['created', 'paused', 'exited', 'dead']
+	cmd = 'docker ps -aq ' + ' '.join(f'--filter "status={f}"' for f in filters) + f' --filter "name=hw6_{alias}" | xargs -r docker rm'
+	os.system(cmd)
+	cmd = f'docker ps -q --filter "name=hw6_{alias}" | xargs -r docker kill'
+	os.system(cmd)
 
 	challenges = str(Path.home() / f'{alias}:{asurite}' / 'challenges')
 
