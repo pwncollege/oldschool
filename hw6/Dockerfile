@@ -15,6 +15,8 @@ run pip install ipython pwntools
 run apt-get install -y gdb
 run cd /tmp; git clone https://github.com/pwndbg/pwndbg; cd pwndbg; ./setup.sh
 
+run apt-get install -y libcapstone-dev
+
 # cleanup
 run find / -type f -perm -4000 | xargs chmod u-s
 

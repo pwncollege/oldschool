@@ -19,7 +19,7 @@ ALIAS_RE = '^[a-z0-9_]{2,15}$'
 ASURITE_RE = '^[a-z]{2,15}[0-9]{0,3}$'
 BINARY_PATH_RE = '^/pwn/(' + '|'.join(CATEGORIES) + ')/[a-z0-9_]+$'
 
-SCORE_MULTIPLIER = 3
+SCORE_MULTIPLIER = 4
 
 ENROLLED = {
 
