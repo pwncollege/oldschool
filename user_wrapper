@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import os
+import sys
 import re
 import shutil
 
@@ -10,19 +11,49 @@ from hashlib import sha256
 
 ##### CONSTANTS #####
 
-SECRET = 'sup3r_4ctu4lly_bu7_r34lly_4N0Th3r_53cur3_p4ZZw0rD'
-SAFETY_SECRET = sha256(f'{SECRET}_but_s@f3r'.encode()).hexdigest()
-
-CATEGORIES = ['babyshell']
+SECRET = 'th1s_s3cr3t_pr0t3cts_th3_fl4gs'
 
 ALIAS_RE = '^[a-z0-9_]{2,15}$'
 ASURITE_RE = '^[a-z]{2,15}[0-9]{0,3}$'
-BINARY_PATH_RE = '^/pwn/(' + '|'.join(CATEGORIES) + ')/[a-z0-9_]+$'
-
-SCORE_MULTIPLIER = 4
 
 ENROLLED = {
 
+}
+
+##### ASSIGNMENTS #####
+
+class ChallengeSet:
+    def __init__(self, docker_name, binary_path_re, score_multiplier=1, docker_arguments=None, custom_challenges=True):
+        if not docker_arguments:
+            docker_arguments = []
+
+        self.docker_name = docker_name
+        self.binary_path_re = binary_path_re
+        self.score_multiplier = score_multiplier
+        self.docker_arguments = docker_arguments
+        self.custom_challenges = custom_challenges
+
+    def load(self):
+        global DOCKER_NAME
+        global BINARY_PATH_RE
+        global SCORE_MULTIPLIER
+        global DOCKER_ARGUMENTS
+        global CUSTOM_CHALLENGES
+
+        DOCKER_NAME = self.docker_name
+        BINARY_PATH_RE = self.binary_path_re
+        SCORE_MULTIPLIER = self.score_multiplier
+        DOCKER_ARGUMENTS = self.docker_arguments
+        CUSTOM_CHALLENGES = self.custom_challenges
+
+        
+HOMEWORKS = {
+    'hw1': ChallengeSet('hw1', '^/[a-zA-Z0-9/_\-\+\.]+$', 1, custom_challenges=False)
+    'hw2': ChallengeSet('hw2', '^/[a-zA-Z0-9/_\-\+\.]+$', 2, custom_challenges=False)
+    'hw3': ChallengeSet('hw3', '^/pwn/[a-z0-9_]+$', 3)
+    'hw4': ChallengeSet('hw4', '^/pwn/[a-z0-9_]+$', 4)
+    'hw5': ChallengeSet('hw5', '^/pwn/(babypwn|babykey)/[a-z0-9_]+$', 3)
+    'hw6': ChallengeSet('hw6', '^/pwn/(babyshell)/[a-z0-9_]+$', 4)
 }
 
 ##### GLOBAL SESSION INFO #####
@@ -30,25 +61,7 @@ ENROLLED = {
 alias = None
 asurite = None
 
-##### INTERCEPT INPUT/OUTPUT ######
-
-def print(s=''):
-    s = f'[+++] {s}'
-    if alias and asurite:
-        session_log = Path.home() / f'{alias}:{asurite}' / 'session_log'
-        with session_log.open('a') as f:
-            f.write(s + '\n')
-            __builtins__.print(s)
-
-def input(s=''):
-    s = f'[+++] {s}'
-    result = __builtins__.input(s)
-    if alias and asurite:
-        session_log = Path.home() / f'{alias}:{asurite}' / 'session_log'
-        with session_log.open('a') as f:
-            f.write(s + result + '\n')
-    return result
-
+    
 ##### USER CONTROLS #####
 
 def login():
@@ -75,11 +88,15 @@ def login():
         (user_path / 'logs').mkdir()
         (user_path / 'solves').mkdir()
 
-        try:
-            challenge = list((Path.home() / 'challenges').iterdir())[0]
-            shutil.move(str(challenge), str(user_path / 'challenges'))
-        except:
-            raise Exception("Error: Yan's fault")
+        if CUSTOM_CHALLENGES:
+            try:
+                challenge = list((Path.home() / 'challenges').iterdir())[0]
+                shutil.move(str(challenge), str(user_path / 'challenges'))
+            except:
+                raise Exception("Error: Yan's fault")
+        else:
+            (user_path / 'challenges').mkdir()
+                
 
         return alias, asurite # User successfully created
     elif alias in users.keys():
@@ -104,7 +121,7 @@ def show_scoreboard():
     for i, alias in enumerate(reversed(sorted(user_scores, key=lambda k: user_scores[k]))):
         grade = user_grades.get(alias, "GUEST")
         print(f"{i+1:>{rank_length}}.    {alias:<{alias_length}}    {user_scores[alias]:>{score_length}}    {grade:>{grade_length}}")
-        print()
+    print()
 
 def solve_challenge():
     challenge = challenge_path()
@@ -113,16 +130,16 @@ def solve_challenge():
 
     # Kill any old docker container
     filters = ['created', 'paused', 'exited', 'dead']
-    cmd = 'docker ps -aq ' + ' '.join(f'--filter "status={f}"' for f in filters) + f' --filter "name=hw6_{alias}" | xargs -r docker rm'
+    cmd = 'docker ps -aq ' + ' '.join(f'--filter "status={f}"' for f in filters) + f' --filter "name={DOCKER_NAME}_{alias}" | xargs -r docker rm'
     os.system(cmd)
-    cmd = f'docker ps -q --filter "name=hw6_{alias}" | xargs -r docker kill'
+    cmd = f'docker ps -q --filter "name={DOCKER_NAME}_{alias}" | xargs -r docker kill'
     os.system(cmd)
 
     challenges = str(Path.home() / f'{alias}:{asurite}' / 'challenges')
 
     # Start new docker container
     docker_arguments = [
-        ('--name', f'hw6_{alias}'),
+        ('--name', f'{DOCKER_NAME}_{alias}'),
         ('--env', f'PASSWORD={asurite}'),
         ('--env', f'FLAG={flag}'),
         ('--env', f'BINARY_FILE={challenge}'),
@@ -136,10 +153,11 @@ def solve_challenge():
         ('--pids-limit', '100'),
         # ('--device-write-bps', '/dev/sda:10kb')
     ]
+    docker_arguments += DOCKER_ARGUMENTS
     docker_arguments = ' '.join(f'{param} {value}' for param, value in docker_arguments)
-    log_path = str(Path.home() / f'{alias}:{asurite}' / 'logs' / base_challenge)
-    os.system(f'docker run -td --rm {docker_arguments} hw6')
-    os.system(f'docker ps --filter="name=hw6_{alias}"')
+
+    os.system(f'docker run -td --rm {docker_arguments} {DOCKER_NAME}')
+    os.system(f'docker ps --filter="name={DOCKER_NAME}_{alias}"')
 
     submitted_flag = input("Flag: ")
     if submitted_flag == flag:
@@ -149,10 +167,10 @@ def solve_challenge():
         print("Wrong Flag!")
 
 def show_challenges():
-    for category in CATEGORIES:
-        challenges = Path.home() / f'{alias}:{asurite}' / 'challenges' / category
-        for challenge in challenges.iterdir():
-            print(f"/pwn/{category}/{challenge.name}")
+    challenges = Path.home() / f'{alias}:{asurite}' / 'challenges'
+    for challenge in challenges.glob('**/*'):
+        if challenge.is_file():
+            print(f"{str(challenge)[len(str(challenges)):]}")
 
 ##### UTILITY FUNCTIONS #####
 
@@ -231,9 +249,9 @@ def grades(user_scores):
 
     return {**below_grades, **above_grades}
 
-##### MAIN #####
+##### MENU #####
 
-def main():
+def menu():
     global alias
     global asurite
 
@@ -253,8 +271,9 @@ def main():
     while True:
         print("1. Show Scoreboard")
         print("2. Solve Challenge")
-        print("3. Show Challenges")
-        print("4. Quit")
+        if CUSTOM_CHALLENGES:
+            print("3. Show Challenges")
+        print("0. Quit")
 
         try:
             choice = int(input("Choice: "))
@@ -267,10 +286,10 @@ def main():
         elif choice == 2:
             solve_challenge()
 
-        elif choice == 3:
+        elif CUSTOM_CHALLENGES and choice == 3:
             show_challenges()
 
-        elif choice == 4:
+        elif choice == 0:
             return
 
         else:
@@ -279,6 +298,12 @@ def main():
         print()
         print()
 
+def main():
+    hw = sys.argv[1]
+    HOMEWORKS[hw].load()
+    menu()
+
+    
 if __name__ == '__main__':
     try:
         main()
