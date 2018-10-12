@@ -48,11 +48,11 @@ class ChallengeSet:
 
         
 HOMEWORKS = {
-    'hw1': ChallengeSet('hw1', '^/[a-zA-Z0-9/_\-\+\.]+$', 1, custom_challenges=False)
-    'hw2': ChallengeSet('hw2', '^/[a-zA-Z0-9/_\-\+\.]+$', 2, custom_challenges=False)
-    'hw3': ChallengeSet('hw3', '^/pwn/[a-z0-9_]+$', 3)
-    'hw4': ChallengeSet('hw4', '^/pwn/[a-z0-9_]+$', 4)
-    'hw5': ChallengeSet('hw5', '^/pwn/(babypwn|babykey)/[a-z0-9_]+$', 3)
+    'hw1': ChallengeSet('hw1', '^/[a-zA-Z0-9/_\-\+\.]+$', 1, custom_challenges=False),
+    'hw2': ChallengeSet('hw2', '^/[a-zA-Z0-9/_\-\+\.]+$', 2, custom_challenges=False),
+    'hw3': ChallengeSet('hw3', '^/pwn/[a-z0-9_]+$', 3),
+    'hw4': ChallengeSet('hw4', '^/pwn/[a-z0-9_]+$', 4),
+    'hw5': ChallengeSet('hw5', '^/pwn/(babypwn|babykey)/[a-z0-9_]+$', 3),
     'hw6': ChallengeSet('hw6', '^/pwn/(babyshell)/[a-z0-9_]+$', 4)
 }
 
