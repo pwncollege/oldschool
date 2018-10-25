@@ -170,7 +170,7 @@ def show_challenges():
     challenges = Path.home() / f'{alias}:{asurite}' / 'challenges'
     for challenge in challenges.glob('**/*'):
         if challenge.is_file():
-            print(f"{str(challenge)[len(str(challenges)):]}")
+            print(f"/pwn{str(challenge)[len(str(challenges)):]}")
 
 ##### UTILITY FUNCTIONS #####
 

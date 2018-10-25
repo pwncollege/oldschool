@@ -7,8 +7,8 @@ from pathlib import Path
 MAIN_PATH = Path(os.path.dirname(os.path.realpath(__file__)))
 
 HOMEWORK_PASSWORDS = {
-    'hw1': {'s3cr3t', 'shellphish_1', 'rpisec_1'},
-    'hw2': {'7hLhMc5L7xJRn26J', 'shellphish_2', 'rpisec_2'},
+#    'hw1': {'s3cr3t', 'shellphish_1', 'rpisec_1'},
+#    'hw2': {'7hLhMc5L7xJRn26J', 'shellphish_2', 'rpisec_2'},
     'hw3': {'34s13r_p4ssw0rd', 'shellphish_3', 'rpisec_3'},
     'hw4': {'n0t_3v3n_d1ff1cul7', 'shellphish_4', 'rpisec_4'},
     'hw5': {'w0uld_y0u_l1k3_ssh_w1th_th4t', 'shellphish_5', 'rpisec_5'},
