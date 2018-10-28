@@ -53,7 +53,8 @@ HOMEWORKS = {
     'hw3': ChallengeSet('hw3', '^/pwn/[a-z0-9_]+$', 3),
     'hw4': ChallengeSet('hw4', '^/pwn/[a-z0-9_]+$', 4),
     'hw5': ChallengeSet('hw5', '^/pwn/(babypwn|babykey)/[a-z0-9_]+$', 3),
-    'hw6': ChallengeSet('hw6', '^/pwn/(babyshell)/[a-z0-9_]+$', 4)
+    'hw6': ChallengeSet('hw6', '^/pwn/(babyshell)/[a-z0-9_]+$', 4),
+    'hw7': ChallengeSet('hw7', '^/pwn/[a-z0-9_]+$', 2),
 }
 
 ##### GLOBAL SESSION INFO #####
@@ -230,7 +231,7 @@ def grades(user_scores):
                     closest_low = prev_cluster
                     closest_high = cluster
                     closest_distance = current_distance
-                    prev_cluster = cluster
+            prev_cluster = cluster
 
         new_cluster = (closest_low[0], closest_high[1])
         new_cluster_data = [*clusters[closest_low], *clusters[closest_high]]
@@ -245,7 +246,7 @@ def grades(user_scores):
         cluster_data = clusters[cluster]
         for user in cluster_data:
             above_grades[user] = score
-            score -= 1
+        score -= 1
 
     return {**below_grades, **above_grades}
 

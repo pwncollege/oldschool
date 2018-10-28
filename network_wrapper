@@ -13,6 +13,7 @@ HOMEWORK_PASSWORDS = {
     'hw4': {'n0t_3v3n_d1ff1cul7', 'shellphish_4', 'rpisec_4'},
     'hw5': {'w0uld_y0u_l1k3_ssh_w1th_th4t', 'shellphish_5', 'rpisec_5'},
     'hw6': {'m4k3_v0n_n3um4nn_pr0ud', 'shellphish_6', 'rpisec_6'},
+    'hw7': {'n0w_1t_g3ts_fun', 'shellphish_7', 'rpisec_7'},
 }
 
 def main():
